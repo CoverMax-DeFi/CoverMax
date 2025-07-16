@@ -1,10 +1,10 @@
-# CoverVault 🛡️
+# CoverMax 🛡️
 
 *A decentralized insurance protocol powered by tradeable risk tokens*
 
 ## 🎮 Quick Start for Testing
 
-Want to try out CoverVault? Use this test wallet that already has test tokens:
+Want to try out CoverMax? Use this test wallet that already has test tokens:
 
 **Test Private Key:**
 ```
@@ -21,13 +21,13 @@ This wallet is pre-funded with test tokens (aUSDC, cUSDT) that you can use to:
 
 ## Overview
 
-CoverVault is a revolutionary insurance protocol that transforms traditional insurance through **tradeable risk tokens** for **yield-bearing collateral**. Users deposit yield-bearing assets (like aUSDC or cUSDT) and receive dual-tier risk tokens that can be traded on Uniswap. The more risk tokens sold in the market, the more insurance coverage is provided to the community.
+CoverMax is a revolutionary insurance protocol that transforms traditional insurance through **tradeable risk tokens** for **yield-bearing collateral**. Users deposit yield-bearing assets (like aUSDC or cUSDT) and receive dual-tier risk tokens that can be traded on Uniswap. The more risk tokens sold in the market, the more insurance coverage is provided to the community.
 
 ## 🎥 Demo Video
 
-[![CoverVault Demo](https://img.youtube.com/vi/CvOf5WiP0co/0.jpg)](https://youtu.be/CvOf5WiP0co)
+[![CoverMax Demo](https://img.youtube.com/vi/CvOf5WiP0co/0.jpg)](https://youtu.be/CvOf5WiP0co)
 
-Watch CoverVault in action: https://youtu.be/CvOf5WiP0co
+Watch CoverMax in action: https://youtu.be/CvOf5WiP0co
 
 ## 🧠 How It Works
 
@@ -35,8 +35,8 @@ Watch CoverVault in action: https://youtu.be/CvOf5WiP0co
 
 1. **Deposit Phase** (2 days): Users deposit yield-bearing assets (aUSDC, cUSDT) into insurance pools
 2. **Token Issuance**: For each deposit, users receive equal amounts of:
-   - **Senior Risk Tokens** (CV-SENIOR) - Lower risk, priority claims
-   - **Junior Risk Tokens** (CV-JUNIOR) - Higher risk, subordinate claims
+   - **Senior Risk Tokens** (CM-SENIOR) - Lower risk, priority claims
+   - **Junior Risk Tokens** (CM-JUNIOR) - Higher risk, subordinate claims
 3. **Trading Phase**: Risk tokens can be traded on Uniswap like any ERC20 token
 4. **Coverage Phase** (3 days): Active insurance period where claims can be submitted
 5. **Redemption Phase**: Token holders can redeem remaining tokens for underlying assets
@@ -53,13 +53,13 @@ The core innovation is that **selling risk tokens = providing insurance coverage
 
 #### Risk Tier Trading (Advanced Strategy)
 ```
-1. Alice deposits 1000 aUSDC → receives 500 CV-SENIOR + 500 CV-JUNIOR tokens
-2. Bob deposits 1000 cUSDT → receives 500 CV-SENIOR + 500 CV-JUNIOR tokens
-3. Bob wants more downside protection, so he trades on CV-SENIOR/CV-JUNIOR pool:
-   - Sells 200 CV-JUNIOR tokens → receives 190 CV-SENIOR tokens (5% lost in value)
-4. Bob now holds 690 CV-SENIOR + 300 CV-JUNIOR tokens (990 total)
+1. Alice deposits 1000 aUSDC → receives 500 CM-SENIOR + 500 CM-JUNIOR tokens
+2. Bob deposits 1000 cUSDT → receives 500 CM-SENIOR + 500 CM-JUNIOR tokens
+3. Bob wants more downside protection, so he trades on CM-SENIOR/CM-JUNIOR pool:
+   - Sells 200 CM-JUNIOR tokens → receives 190 CM-SENIOR tokens (5% lost in value)
+4. Bob now holds 690 CM-SENIOR + 300 CM-JUNIOR tokens (990 total)
    - Result: Bob forfeited 10 tokens of potential upside for senior claim priority
-5. Alice see a opportunity to buy cheap CV-JUNIOR tokens that are redeemable to the same underlying token, so she buys the them. She now holds 310 CV-SENIOR + 700 CV-JUNIOR tokens (1010 total)
+5. Alice see a opportunity to buy cheap CM-JUNIOR tokens that are redeemable to the same underlying token, so she buys the them. She now holds 310 CM-SENIOR + 700 CM-JUNIOR tokens (1010 total)
 6. If one of the underlying yield protocols get exploited: Bob's 690 senior tokens get paid before any junior tokens. He can withdraw up to 990 yield tokens.
 7. if there was no exploit: Alice's 310 senior tokens get paid before any junior tokens. She can withdraw up to 1010 yield tokens.
 ```
@@ -82,8 +82,8 @@ The core innovation is that **selling risk tokens = providing insurance coverage
 
 | Token Type | Risk Level | Claim Priority | Use Case |
 |------------|------------|----------------|----------|
-| CV-SENIOR  | Lower      | First claims   | Conservative insurance providers |
-| CV-JUNIOR  | Higher     | Subordinate    | Risk-seeking yield farmers |
+| CM-SENIOR  | Lower      | First claims   | Conservative insurance providers |
+| CM-JUNIOR  | Higher     | Subordinate    | Risk-seeking yield farmers |
 
 ## 🔄 Protocol Lifecycle
 
@@ -133,13 +133,13 @@ Risk tokens are standard ERC20 tokens that can be traded on any DEX. Uniswap pro
 
 ### Trading Strategy Examples
 
-#### 1. Risk Tier Arbitrage (CV-SENIOR ↔ CV-JUNIOR Pool)
+#### 1. Risk Tier Arbitrage (CM-SENIOR ↔ CM-JUNIOR Pool)
 ```solidity
 // Strategy: Trade down risk by converting junior to senior tokens
 // Bob wants more downside protection, less upside exposure
 uniswapRouter.swapExactTokensForTokens(
-    200 * 1e18, // Sell 200 CV-JUNIOR tokens
-    190 * 1e18, // Expect ~190 CV-SENIOR tokens (forfeit some upside)
+    200 * 1e18, // Sell 200 CM-JUNIOR tokens
+    190 * 1e18, // Expect ~190 CM-SENIOR tokens (forfeit some upside)
     [juniorToken, seniorToken],
     msg.sender,
     deadline
@@ -154,7 +154,7 @@ uniswapRouter.swapExactTokensForTokens(
 // Strategy: Exit insurance position entirely
 // Sell risk tokens for stablecoins to eliminate exposure
 uniswapRouter.swapExactTokensForTokens(
-    250 * 1e18, // Sell 250 CV-SENIOR tokens
+    250 * 1e18, // Sell 250 CM-SENIOR tokens
     minAmountOut,
     [seniorToken, USDC],
     msg.sender,
@@ -253,4 +253,4 @@ MIT License
 
 ---
 
-*CoverVault: Phase-based risk management with dual-tier tokens*
+*CoverMax: Phase-based risk management with dual-tier tokens*

@@ -383,7 +383,7 @@ const Advanced = () => {
               <CardHeader>
                 <CardTitle className="text-white">Issue Risk Tokens</CardTitle>
                 <CardDescription className="text-slate-300">
-                  Deposit assets to receive CV-SENIOR and CV-JUNIOR tokens
+                  Deposit assets to receive CM-SENIOR and CM-JUNIOR tokens
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -442,7 +442,7 @@ const Advanced = () => {
                     <Alert className="bg-slate-700/50 border-slate-600 text-slate-300">
                       <Info className="h-4 w-4" />
                       <AlertDescription>
-                        You will receive {depositAmount ? (parseFloat(depositAmount) / 2) : '0'} CV-SENIOR and {depositAmount ? (parseFloat(depositAmount) / 2) : '0'} CV-JUNIOR tokens
+                        You will receive {depositAmount ? (parseFloat(depositAmount) / 2) : '0'} CM-SENIOR and {depositAmount ? (parseFloat(depositAmount) / 2) : '0'} CM-JUNIOR tokens
                       </AlertDescription>
                     </Alert>
                     <Button 
@@ -766,7 +766,7 @@ const Advanced = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="emergency-amount" className="text-slate-300">CV-SENIOR Amount</Label>
+                      <Label htmlFor="emergency-amount" className="text-slate-300">CM-SENIOR Amount</Label>
                       <Input
                         id="emergency-amount"
                         type="number"

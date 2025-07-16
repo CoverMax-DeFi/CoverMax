@@ -83,7 +83,7 @@ const PhaseDisplay: React.FC = () => {
   const getPhaseDescription = () => {
     switch (vaultInfo.currentPhase) {
       case Phase.DEPOSIT:
-        return 'Users can deposit aUSDC or cUSDT to receive CV-SENIOR and CV-JUNIOR tokens';
+        return 'Users can deposit aUSDC or cUSDT to receive CM-SENIOR and CM-JUNIOR tokens';
       case Phase.COVERAGE:
         return 'Coverage is active. Tokens are locked and earning yield';
       case Phase.CLAIMS:

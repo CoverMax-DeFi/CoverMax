@@ -29,7 +29,7 @@ const RiskTokenModule = buildModule("RiskTokenModule", (m) => {
   m.call(mockAUSDC, "approve", [riskVault, depositAmount]);
   m.call(mockCUSDT, "approve", [riskVault, depositAmount]);
 
-  // Deposit into CoverVault to get risk tokens
+  // Deposit into CoverMax to get risk tokens
   m.call(riskVault, "depositAsset", [mockAUSDC, depositAmount], { id: "depositAUSDC" });
   m.call(riskVault, "depositAsset", [mockCUSDT, depositAmount], { id: "depositCUSDT" });
 

@@ -57,6 +57,13 @@ const config: HardhatUserConfig = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       gasPrice: 20000000000, // 20 gwei (as per Mantle docs)
     },
+    // XRPL EVM Sidechain Testnet
+    xrplTestnet: {
+      url: "https://rpc.testnet.xrplevm.org",
+      chainId: 1449000,
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      gasPrice: 1000000000, // 1 gwei
+    },
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
@@ -70,6 +77,8 @@ const config: HardhatUserConfig = {
       hederaTestnet: "no-api-key-required",
       // Mantle networks
       mantleTestnet: process.env.MANTLESCAN_API_KEY || process.env.ETHERSCAN_API_KEY || "",
+      // XRPL EVM networks
+      xrplTestnet: "no-api-key-required",
       // Other networks
       mainnet: process.env.ETHERSCAN_API_KEY || "",
       sepolia: process.env.ETHERSCAN_API_KEY || "",
@@ -97,6 +106,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api-sepolia.mantlescan.xyz/api",
           browserURL: "https://sepolia.mantlescan.xyz"
+        }
+      },
+      {
+        network: "xrplTestnet",
+        chainId: 1449000,
+        urls: {
+          apiURL: "https://explorer.testnet.xrplevm.org/api",
+          browserURL: "https://explorer.testnet.xrplevm.org"
         }
       }
     ]

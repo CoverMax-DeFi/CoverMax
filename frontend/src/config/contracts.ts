@@ -6,6 +6,7 @@ export enum SupportedChainId {
   FLOW_TESTNET = 545,
   HEDERA_TESTNET = 296,
   MANTLE_TESTNET = 5003,
+  XRPL_TESTNET = 1449000,
 }
 
 // Contract names enum for type safety
@@ -55,6 +56,17 @@ export const MULTI_CHAIN_ADDRESSES: Record<SupportedChainId, Partial<Record<Cont
     [ContractName.JUNIOR_TOKEN]: "0xfB7A47A1AF866CCaE1E6212732B403AB2c5844C5",
     [ContractName.SENIOR_TOKEN]: "0xBe2b463cf7679B1939628F54A380AC241547A6F6",
     [ContractName.SENIOR_JUNIOR_PAIR]: "0x1bd0D0D09e0ed8e417dDae0Ca6160f985B3cfc66",
+  },
+  [SupportedChainId.XRPL_TESTNET]: {
+    [ContractName.MOCK_AUSDC]: "0x88a6B75bf7376De9FF3E602f8FF0C160b89D8a3A",
+    [ContractName.MOCK_CUSDT]: "0x012c9515Eb3d86C5A1b13195AfaC785919C4CF5b",
+    [ContractName.UNISWAP_V2_FACTORY]: "0x89f5f743489A156688B83C520832D340cE12EBE7",
+    [ContractName.WETH]: "0x799DaD27F8038517c1031fCB05dFEdde4721409F",
+    [ContractName.RISK_VAULT]: "0xD3ce5cbC4F11eCC53Eb2B2B151378E49E9171B3b",
+    [ContractName.UNISWAP_V2_ROUTER]: "0xf2862D664074Dc003f75848dc67cB8efd8baCac2",
+    [ContractName.JUNIOR_TOKEN]: "0x1EC0632176F4Ca8CA8E95d2c85419BC37cc8DF74",
+    [ContractName.SENIOR_TOKEN]: "0x28Fa1c3e924b4969759513f1351212F705ec3e86",
+    [ContractName.SENIOR_JUNIOR_PAIR]: "0x60ce2ef9253dc447090aDcebA3530a9eC6BD75F0",
   },
 };
 
@@ -135,6 +147,20 @@ export const CHAIN_CONFIGS: Record<SupportedChainId, {
     rpcUrls: ["https://rpc.sepolia.mantle.xyz"],
     blockExplorerUrls: ["https://sepolia.mantlescan.xyz"],
     icon: "🧩",
+    isTestnet: true,
+  },
+  [SupportedChainId.XRPL_TESTNET]: {
+    chainId: 1449000,
+    chainName: "XRPL EVM Sidechain",
+    networkName: "xrpl-testnet",
+    nativeCurrency: {
+      name: "XRP",
+      symbol: "XRP",
+      decimals: 18,
+    },
+    rpcUrls: ["https://rpc.testnet.xrplevm.org"],
+    blockExplorerUrls: ["https://explorer.testnet.xrplevm.org"],
+    icon: "💧",
     isTestnet: true,
   },
 };

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useWeb3 } from '@/context/PrivyWeb3Context';
-import Logo from '@/assets/images/CoverVault.svg';
+import Logo from '@/assets/images/CoverMax.svg';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -65,8 +65,8 @@ const Index = () => {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-3">
-              <img src={Logo} alt="CoverVault" className="h-8 w-auto" />
-              <span className="text-xl font-bold text-white">CoverVault</span>
+              <img src={Logo} alt="CoverMax" className="h-8 w-auto" />
+              <span className="text-xl font-bold text-white">CoverMax</span>
             </Link>
             
             <div className="flex items-center space-x-6">
@@ -141,7 +141,7 @@ const Index = () => {
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Who is CoverVault for?
+              Who is CoverMax for?
             </h2>
             <p className="text-slate-300 text-lg max-w-2xl mx-auto">
               Two distinct user types—choose your risk, earn your yield.
@@ -299,8 +299,8 @@ const Index = () => {
           <div className="grid md:grid-cols-4 gap-8">
             <div className="md:col-span-2">
               <div className="flex items-center space-x-3 mb-4">
-                <img src={Logo} alt="CoverVault" className="h-6 w-auto" />
-                <span className="text-lg font-bold text-white">CoverVault</span>
+                <img src={Logo} alt="CoverMax" className="h-6 w-auto" />
+                <span className="text-lg font-bold text-white">CoverMax</span>
               </div>
               <p className="text-slate-400 mb-6 max-w-md">
                 Insurance-backed DeFi yields through innovative dual-token architecture.
@@ -329,7 +329,7 @@ const Index = () => {
           
           <div className="border-t border-slate-700/50 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
             <p className="text-slate-400 mb-4 md:mb-0">
-              © {new Date().getFullYear()} CoverVault Protocol. Decentralized and open source.
+              © {new Date().getFullYear()} CoverMax Protocol. Decentralized and open source.
             </p>
             <div className="flex items-center space-x-4">
               <Badge variant="outline" className="border-slate-600 text-slate-400">

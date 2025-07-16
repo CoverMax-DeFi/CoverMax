@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./RiskToken.sol";
 import "./IRiskToken.sol";
 
-/// @title CoverVault
+/// @title CoverMax
 /// @notice A decentralized insurance protocol with tradeable risk tokens and time-based lifecycle phases
 contract RiskVault is Ownable, ReentrancyGuard {
     /* Protocol Phases */
@@ -19,8 +19,8 @@ contract RiskVault is Ownable, ReentrancyGuard {
     }
 
     /* Core Protocol Assets */
-    address public immutable seniorToken; // CV-Senior token contract
-    address public immutable juniorToken; // CV-Junior token contract
+    address public immutable seniorToken; // CM-Senior token contract
+    address public immutable juniorToken; // CM-Junior token contract
     address public immutable aUSDC; // AUSDC yield token
     address public immutable cUSDT; // CUSDT yield token
 
@@ -32,7 +32,7 @@ contract RiskVault is Ownable, ReentrancyGuard {
     uint256 private constant FINAL_CLAIMS_DURATION = 1 days;
 
     /* Protocol State */
-    uint256 public totalTokensIssued; // Total CV-Senior + CV-Junior tokens outstanding
+    uint256 public totalTokensIssued; // Total CM-Senior + CM-Junior tokens outstanding
     bool public emergencyMode; // Emergency mode flag for prioritized withdrawals
     
     /* Lifecycle Management */
@@ -75,8 +75,8 @@ contract RiskVault is Ownable, ReentrancyGuard {
         cUSDT = _cUSDT;
         
         // Deploy CM tokens and transfer ownership to this vault
-        RiskToken _seniorToken = new RiskToken("CoverVault Senior Token", "CV-SENIOR");
-        RiskToken _juniorToken = new RiskToken("CoverVault Junior Token", "CV-JUNIOR");
+        RiskToken _seniorToken = new RiskToken("CoverMax Senior Token", "CM-SENIOR");
+        RiskToken _juniorToken = new RiskToken("CoverMax Junior Token", "CM-JUNIOR");
         
         // Transfer ownership to this vault for proper access control
         _seniorToken.transferOwnership(address(this));

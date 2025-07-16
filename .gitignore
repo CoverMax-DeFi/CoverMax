@@ -18,16 +18,21 @@ ignition/deployments/chain-31337/artifacts
 ignition/deployments/chain-545/artifacts
 ignition/deployments/chain-296/artifacts
 ignition/deployments/chain-5003/artifacts
+ignition/deployments/chain-1449000/artifacts
 
 ignition/deployments/chain-31337/build-info
 ignition/deployments/chain-545/build-info
 ignition/deployments/chain-296/build-info
 ignition/deployments/chain-5003/build-info
+ignition/deployments/chain-1449000/build-info
+
 
 ignition/deployments/chain-31337/journal.jsonl
 ignition/deployments/chain-545/journal.jsonl
 ignition/deployments/chain-296/journal.jsonl
 ignition/deployments/chain-5003/journal.jsonl
+ignition/deployments/chain-1449000/journal.jsonl
+
 
 
 frontend/node_modules

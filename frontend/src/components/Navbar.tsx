@@ -1,5 +1,5 @@
 import React from 'react';
-import Logo from '@/assets/images/CoverVault.svg';
+import Logo from '@/assets/images/CoverMax.svg';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
 import { useWeb3 } from '@/context/PrivyWeb3Context';
@@ -22,8 +22,8 @@ const Navbar: React.FC = () => {
       <div className="container mx-auto flex justify-between items-center">
         <div className="flex items-center space-x-2">
           <Link to="/" className="flex items-center space-x-2">
-            <img src={Logo} alt="CoverVault Logo" className="h-8 w-auto" />
-            <span className="font-bold text-xl text-white">CoverVault</span>
+            <img src={Logo} alt="CoverMax Logo" className="h-8 w-auto" />
+            <span className="font-bold text-xl text-white">CoverMax</span>
           </Link>
         </div>
 

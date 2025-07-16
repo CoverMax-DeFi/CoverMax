@@ -156,7 +156,7 @@ const InsuranceCalculator: React.FC = () => {
   return (
     <Card className="w-full shadow-sm hover:shadow-md transition-shadow bg-slate-800/50 border-slate-700 backdrop-blur-sm">
       <CardHeader>
-        <CardTitle className="text-white">CoverVault Operations</CardTitle>
+        <CardTitle className="text-white">CoverMax Operations</CardTitle>
         <CardDescription className="text-slate-300">
           Current Phase: {PHASE_NAMES[vaultInfo.currentPhase]} 
           {vaultInfo.emergencyMode && <span className="text-red-400 ml-2">(Emergency Mode Active)</span>}

@@ -1247,7 +1247,7 @@ export const PrivyWeb3Provider: React.FC<{ children: ReactNode }> = ({ children 
         appearance: {
           theme: 'light',
           accentColor: '#676FFF',
-          logo: '/CoverVault_Favicon.svg',
+          logo: '/CoverMax_Favicon.svg',
         },
         embeddedWallets: {
           createOnLogin: 'users-without-wallets',

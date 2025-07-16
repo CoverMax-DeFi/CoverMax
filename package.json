@@ -1,7 +1,7 @@
 {
-  "name": "covervault",
+  "name": "CoverMax",
   "version": "1.0.0",
-  "description": "CoverVault - A decentralized insurance protocol",
+  "description": "CoverMax - A decentralized insurance protocol",
   "main": "hardhat.config.ts",
   "scripts": {
     "compile": "npx hardhat compile",
@@ -11,6 +11,7 @@
     "deploy:flow-testnet": "npx hardhat ignition deploy ignition/modules/RiskToken.ts --network flowTestnet",
     "deploy:hedera-testnet": "npx hardhat ignition deploy ignition/modules/RiskToken.ts --network hederaTestnet",
     "deploy:mantle-testnet": "npx hardhat ignition deploy ignition/modules/RiskToken.ts --network mantleTestnet",
+    "deploy:xrpl-testnet": "npx hardhat ignition deploy ignition/modules/RiskToken.ts --network xrplTestnet",
     "node": "npx hardhat node",
     "clean": "npx hardhat clean",
     "coverage": "npx hardhat coverage",
@@ -19,20 +20,21 @@
     "console:flow-testnet": "npx hardhat console --network flowTestnet",
     "verify:flow-testnet": "npx hardhat verify --network flowTestnet",
     "verify:flow-all": "node scripts/verify-flow-contracts.js",
+    "verify:xrpl-all": "node scripts/verify-xrpl-contracts.js",
     "update-frontend-config": "ts-node scripts/update-frontend-config.ts"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zalatar242/CoverVault.git"
+    "url": "git+https://github.com/zalatar242/CoverMax.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/zalatar242/CoverVault/issues"
+    "url": "https://github.com/zalatar242/CoverMax/issues"
   },
-  "homepage": "https://github.com/zalatar242/CoverVault#readme",
+  "homepage": "https://github.com/zalatar242/CoverMax#readme",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.14",
