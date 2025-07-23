@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Read deployed addresses
-const deployedAddressesPath = path.join(__dirname, '../ignition/deployments/chain-1449000/deployed_addresses.json');
+const deployedAddressesPath = path.join(__dirname, '../ignition/deployments/chain-1287/deployed_addresses.json');
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, 'utf8'));
 
 // Contract verification configurations
@@ -65,7 +65,7 @@ async function verifyContract(config, retries = 3) {
       : '';
     
     const contractFlag = config.contract ? ` --contract ${config.contract}` : '';
-    const command = `npx hardhat verify --network xrplTestnet${contractFlag} ${config.address}${argsString}`;
+    const command = `npx hardhat verify --network moonbeamTestnet${contractFlag} ${config.address}${argsString}`;
     
     console.log(`\n🔍 Verifying ${config.name}...`);
     console.log(`Address: ${config.address}`);
@@ -102,7 +102,7 @@ async function verifyContract(config, retries = 3) {
 }
 
 async function verifyAllContracts() {
-  console.log('🚀 Starting XRPL contract verification...\n');
+  console.log('🚀 Starting Moonbeam contract verification...\n');
   
   for (const config of verificationConfigs) {
     try {
@@ -116,7 +116,7 @@ async function verifyAllContracts() {
   
   console.log('\n🎉 Contract verification process completed!');
   console.log('\n📋 Summary:');
-  console.log('Check https://explorer.testnet.xrplevm.org/ to view your verified contracts');
+  console.log('Check https://moonbase.moonscan.io/ to view your verified contracts');
 }
 
 // Run the verification
