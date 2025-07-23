@@ -7,6 +7,7 @@ export enum SupportedChainId {
   HEDERA_TESTNET = 296,
   MANTLE_TESTNET = 5003,
   XRPL_TESTNET = 1449000,
+  MOONBEAM_TESTNET = 1287,
 }
 
 // Contract names enum for type safety
@@ -67,6 +68,17 @@ export const MULTI_CHAIN_ADDRESSES: Record<SupportedChainId, Partial<Record<Cont
     [ContractName.JUNIOR_TOKEN]: "0x1EC0632176F4Ca8CA8E95d2c85419BC37cc8DF74",
     [ContractName.SENIOR_TOKEN]: "0x28Fa1c3e924b4969759513f1351212F705ec3e86",
     [ContractName.SENIOR_JUNIOR_PAIR]: "0x60ce2ef9253dc447090aDcebA3530a9eC6BD75F0",
+  },
+  [SupportedChainId.MOONBEAM_TESTNET]: {
+    [ContractName.MOCK_AUSDC]: "0xA4d800C936C869C3c06D03bd9ff65C5040beDd5D",
+    [ContractName.MOCK_CUSDT]: "0x9797491c8be60d745e9F4f01899BB6622e95ADf2",
+    [ContractName.UNISWAP_V2_FACTORY]: "0x89f5f743489A156688B83C520832D340cE12EBE7",
+    [ContractName.WETH]: "0x012c9515Eb3d86C5A1b13195AfaC785919C4CF5b",
+    [ContractName.RISK_VAULT]: "0x88a6B75bf7376De9FF3E602f8FF0C160b89D8a3A",
+    [ContractName.UNISWAP_V2_ROUTER]: "0x799DaD27F8038517c1031fCB05dFEdde4721409F",
+    [ContractName.JUNIOR_TOKEN]: "0xeD9611881f89fE55Dd313CC1B1d167A72BE322E0",
+    [ContractName.SENIOR_TOKEN]: "0xdEAaCcF040370F1f715aa7537B48a4fC47A385d5",
+    [ContractName.SENIOR_JUNIOR_PAIR]: "0x49290801814672Fd605BEb94f62c19Af8ed2d908",
   },
 };
 
@@ -161,6 +173,20 @@ export const CHAIN_CONFIGS: Record<SupportedChainId, {
     rpcUrls: ["https://rpc.testnet.xrplevm.org"],
     blockExplorerUrls: ["https://explorer.testnet.xrplevm.org"],
     icon: "💧",
+    isTestnet: true,
+  },
+  [SupportedChainId.MOONBEAM_TESTNET]: {
+    chainId: 1287,
+    chainName: "Moonbase Alpha",
+    networkName: "moonbeam-testnet",
+    nativeCurrency: {
+      name: "DEV",
+      symbol: "DEV",
+      decimals: 18,
+    },
+    rpcUrls: ["https://rpc.api.moonbase.moonbeam.network"],
+    blockExplorerUrls: ["https://moonbase.moonscan.io"],
+    icon: "🌙",
     isTestnet: true,
   },
 };

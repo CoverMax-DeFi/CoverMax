@@ -8,6 +8,7 @@ const CHAIN_MAP: Record<string, string> = {
   "296": "chain-296",
   "5003": "chain-5003",
   "1449000": "chain-1449000",
+  "1287": "chain-1287",
 };
 
 const CONTRACT_NAME_MAP: Record<string, string> = {
@@ -60,6 +61,7 @@ function main() {
     "296": "HEDERA_TESTNET",
     "5003": "MANTLE_TESTNET",
     "1449000": "XRPL_TESTNET",
+    "1287": "MOONBEAM_TESTNET",
   };
   for (const [chainId, contracts] of Object.entries(addresses)) {
     const enumKey = chainEnumMap[chainId];

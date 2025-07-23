@@ -12,15 +12,18 @@
     "deploy:hedera-testnet": "npx hardhat ignition deploy ignition/modules/RiskToken.ts --network hederaTestnet",
     "deploy:mantle-testnet": "npx hardhat ignition deploy ignition/modules/RiskToken.ts --network mantleTestnet",
     "deploy:xrpl-testnet": "npx hardhat ignition deploy ignition/modules/RiskToken.ts --network xrplTestnet",
+    "deploy:moonbeam-testnet": "npx hardhat ignition deploy ignition/modules/RiskTokenMoonbeam.ts --network moonbeamTestnet",
     "node": "npx hardhat node",
     "clean": "npx hardhat clean",
     "coverage": "npx hardhat coverage",
     "size": "npx hardhat size-contracts",
     "console": "npx hardhat console",
     "console:flow-testnet": "npx hardhat console --network flowTestnet",
+    "console:moonbeam-testnet": "npx hardhat console --network moonbeamTestnet",
     "verify:flow-testnet": "npx hardhat verify --network flowTestnet",
     "verify:flow-all": "node scripts/verify-flow-contracts.js",
     "verify:xrpl-all": "node scripts/verify-xrpl-contracts.js",
+    "verify:moonbeam-all": "node scripts/verify-moonbeam-contracts.js",
     "update-frontend-config": "ts-node scripts/update-frontend-config.ts"
   },
   "repository": {
@@ -36,6 +39,7 @@
   },
   "homepage": "https://github.com/zalatar242/CoverMax#readme",
   "devDependencies": {
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.14",
     "@nomicfoundation/hardhat-toolbox": "^6.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.14",
     "@onflow/fcl": "^1.19.0",

@@ -1,6 +1,7 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-verify";
+import "@nomicfoundation/hardhat-ignition-ethers";
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -64,6 +65,12 @@ const config: HardhatUserConfig = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       gasPrice: 1000000000, // 1 gwei
     },
+    // Moonbeam Testnet (Moonbase Alpha)
+    moonbeamTestnet: {
+      url: "https://rpc.api.moonbase.moonbeam.network",
+      chainId: 1287, // 0x507 in hex
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    },
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
@@ -79,6 +86,9 @@ const config: HardhatUserConfig = {
       mantleTestnet: process.env.MANTLESCAN_API_KEY || process.env.ETHERSCAN_API_KEY || "",
       // XRPL EVM networks
       xrplTestnet: "no-api-key-required",
+      // Moonbeam networks
+      moonbeamTestnet: process.env.MOONSCAN_API_KEY || "no-api-key-required",
+      moonbaseAlpha: process.env.MOONSCAN_API_KEY || "no-api-key-required", // Alternative name
       // Other networks
       mainnet: process.env.ETHERSCAN_API_KEY || "",
       sepolia: process.env.ETHERSCAN_API_KEY || "",
@@ -114,6 +124,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://explorer.testnet.xrplevm.org/api",
           browserURL: "https://explorer.testnet.xrplevm.org"
+        }
+      },
+      {
+        network: "moonbeamTestnet",
+        chainId: 1287,
+        urls: {
+          apiURL: "https://api-moonbase.moonscan.io/api",
+          browserURL: "https://moonbase.moonscan.io"
         }
       }
     ]
