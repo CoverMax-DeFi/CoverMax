@@ -10,49 +10,51 @@ const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, 'utf
 const verificationConfigs = [
   {
     name: 'MockAUSDC',
-    address: deployedAddresses['RiskTokenModule#MockAUSDC'],
-    constructorArgs: []
+    address: deployedAddresses['RiskTokenSequentialModule#MockAUSDC'],
+    constructorArgs: [],
+    contract: 'contracts/mocks/MockAUSDC.sol:MockAUSDC'
   },
   {
     name: 'MockCUSDT', 
-    address: deployedAddresses['RiskTokenModule#MockCUSDT'],
-    constructorArgs: []
+    address: deployedAddresses['RiskTokenSequentialModule#MockCUSDT'],
+    constructorArgs: [],
+    contract: 'contracts/mocks/MockCUSDT.sol:MockCUSDT'
   },
   {
     name: 'WETH',
-    address: deployedAddresses['RiskTokenModule#WETH'],
+    address: deployedAddresses['RiskTokenSequentialModule#WETH'],
     constructorArgs: []
   },
   {
     name: 'UniswapV2Factory',
-    address: deployedAddresses['RiskTokenModule#UniswapV2Factory'],
-    constructorArgs: [process.env.DEPLOYER_ADDRESS || '0x'] // Will need to be updated with actual deployer
+    address: deployedAddresses['RiskTokenSequentialModule#UniswapV2Factory'],
+    constructorArgs: ['0x4F2cD1d7Ec17639e48a9BcD19fcEF65BA8D93C42'] // Deployer address from deployment
   },
   {
     name: 'RiskVault',
-    address: deployedAddresses['RiskTokenModule#RiskVault'],
+    address: deployedAddresses['RiskTokenSequentialModule#RiskVault'],
     constructorArgs: [
-      deployedAddresses['RiskTokenModule#MockAUSDC'],
-      deployedAddresses['RiskTokenModule#MockCUSDT']
+      deployedAddresses['RiskTokenSequentialModule#MockAUSDC'],
+      deployedAddresses['RiskTokenSequentialModule#MockCUSDT']
     ]
   },
   {
     name: 'UniswapV2Router02',
-    address: deployedAddresses['RiskTokenModule#UniswapV2Router02'],
+    address: deployedAddresses['RiskTokenSequentialModule#UniswapV2Router02'],
     constructorArgs: [
-      deployedAddresses['RiskTokenModule#UniswapV2Factory'],
-      deployedAddresses['RiskTokenModule#WETH']
+      deployedAddresses['RiskTokenSequentialModule#UniswapV2Factory'],
+      deployedAddresses['RiskTokenSequentialModule#WETH']
     ]
   },
   {
     name: 'RiskToken (Senior)',
-    address: deployedAddresses['RiskTokenModule#seniorTokenContract'],
+    address: deployedAddresses['RiskTokenSequentialModule#seniorTokenContract'],
     constructorArgs: ['CoverMax Senior Token', 'CM-SENIOR'],
     contract: 'contracts/RiskToken.sol:RiskToken'
   },
   {
     name: 'RiskToken (Junior)',
-    address: deployedAddresses['RiskTokenModule#juniorTokenContract'], 
+    address: deployedAddresses['RiskTokenSequentialModule#juniorTokenContract'], 
     constructorArgs: ['CoverMax Junior Token', 'CM-JUNIOR'],
     contract: 'contracts/RiskToken.sol:RiskToken'
   }

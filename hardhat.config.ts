@@ -70,6 +70,8 @@ const config: HardhatUserConfig = {
       url: "https://rpc.api.moonbase.moonbeam.network",
       chainId: 1287, // 0x507 in hex
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      gas: 5000000,
+      gasPrice: 31250000000, // 31.25 Gwei (new minimum after Runtime 3400)
     },
   },
   gasReporter: {
@@ -80,7 +82,7 @@ const config: HardhatUserConfig = {
     apiKey: {
       // Flow networks
       flowTestnet: "no-api-key-required",
-      // Hedera networks  
+      // Hedera networks
       hederaTestnet: "no-api-key-required",
       // Mantle networks
       mantleTestnet: process.env.MANTLESCAN_API_KEY || process.env.ETHERSCAN_API_KEY || "",
@@ -111,7 +113,7 @@ const config: HardhatUserConfig = {
         }
       },
       {
-        network: "mantleTestnet", 
+        network: "mantleTestnet",
         chainId: 5003,
         urls: {
           apiURL: "https://api-sepolia.mantlescan.xyz/api",

@@ -21,6 +21,26 @@ const CONTRACT_NAME_MAP: Record<string, string> = {
   "RiskTokenModule#UniswapV2Router02": "UNISWAP_V2_ROUTER",
   "RiskTokenModule#WETH": "WETH",
   "RiskTokenModule#UniswapV2Pair": "SENIOR_JUNIOR_PAIR",
+  // Sequential module mappings
+  "RiskTokenSequentialModule#RiskVault": "RISK_VAULT",
+  "RiskTokenSequentialModule#seniorTokenContract": "SENIOR_TOKEN",
+  "RiskTokenSequentialModule#juniorTokenContract": "JUNIOR_TOKEN",
+  "RiskTokenSequentialModule#MockAUSDC": "MOCK_AUSDC",
+  "RiskTokenSequentialModule#MockCUSDT": "MOCK_CUSDT",
+  "RiskTokenSequentialModule#UniswapV2Factory": "UNISWAP_V2_FACTORY",
+  "RiskTokenSequentialModule#UniswapV2Router02": "UNISWAP_V2_ROUTER",
+  "RiskTokenSequentialModule#WETH": "WETH",
+  "RiskTokenSequentialModule#pairContract": "SENIOR_JUNIOR_PAIR",
+  // Phased module mappings
+  "InfrastructureModule#MockAUSDC": "MOCK_AUSDC",
+  "InfrastructureModule#MockCUSDT": "MOCK_CUSDT",
+  "InfrastructureModule#UniswapV2Factory": "UNISWAP_V2_FACTORY",
+  "InfrastructureModule#UniswapV2Router02": "UNISWAP_V2_ROUTER",
+  "InfrastructureModule#WETH": "WETH",
+  "RiskVaultModule#RiskVault": "RISK_VAULT",
+  "LiquidityModule#seniorTokenContract": "SENIOR_TOKEN",
+  "LiquidityModule#juniorTokenContract": "JUNIOR_TOKEN",
+  "LiquidityModule#seniorJuniorPair": "SENIOR_JUNIOR_PAIR",
 };
 
 const outputPath = path.resolve(__dirname, "../frontend/src/config/contracts.ts");
