@@ -484,10 +484,6 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
           console.log('🔄 Network change detected in vault calls, skipping...');
           return;
         }
-        if (vaultError.code === 'CALL_EXCEPTION' && currentChain === 296) {
-          console.log('⚠️ Hedera RPC issue detected in vault calls, skipping...');
-          return;
-        }
         console.error('❌ Vault contract calls failed:', vaultError);
         throw vaultError;
       }
@@ -532,10 +528,6 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
           console.log('🔄 Network change detected in token calls, skipping...');
           return;
         }
-        if (tokenError.code === 'CALL_EXCEPTION' && currentChain === 296) {
-          console.log('⚠️ Hedera RPC issue detected in token calls, skipping...');
-          return;
-        }
         console.error('❌ Token balance calls failed:', tokenError);
         throw tokenError;
       }
@@ -545,8 +537,6 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
         return;
       }
       if (error.code === 'CALL_EXCEPTION' && currentChain === 296) {
-        console.log('⚠️ Hedera RPC rate limiting detected, skipping refresh...');
-        return;
       }
       console.error('💥 Error refreshing data on chain', currentChain, ':', error);
       console.error('Error details:', {
@@ -913,8 +903,7 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
     
     // Add a delay after chain change before starting auto-refresh
     const timeoutId = setTimeout(() => {
-      // Use longer intervals for Hedera to avoid rate limiting
-      const refreshInterval = currentChain === 296 ? 8000 : 4000; // 8s for Hedera, 4s for others
+      const refreshInterval = 4000;
       
       interval = setInterval(() => {
         refreshData();
@@ -1008,10 +997,6 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
     } catch (error) {
       if (error.code === 'NETWORK_ERROR') {
         console.log('🔄 Network change detected in getAmountsOut, skipping...');
-        return "0";
-      }
-      if (error.code === 'CALL_EXCEPTION' && currentChain === 296) {
-        console.log('⚠️ Hedera RPC issue in getAmountsOut, skipping...');
         return "0";
       }
       console.error('Error getting amounts out:', error);
@@ -1184,10 +1169,6 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
     } catch (error) {
       if (error.code === 'NETWORK_ERROR') {
         console.log('🔄 Network change detected in getPairReserves, skipping...');
-        return { reserve0: 0n, reserve1: 0n };
-      }
-      if (error.code === 'CALL_EXCEPTION' && currentChain === 296) {
-        console.log('⚠️ Hedera RPC issue in getPairReserves, skipping...');
         return { reserve0: 0n, reserve1: 0n };
       }
       console.error('Error getting pair reserves:', error);
