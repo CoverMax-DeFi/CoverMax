@@ -1,22 +1,33 @@
-// test/UniswapTrading.test.ts
-
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
-const { ZeroAddress } = require("ethers");
+import { expect } from "chai";
+import { ethers } from "hardhat";
+import "@nomicfoundation/hardhat-chai-matchers";
+import { ZeroAddress, ContractTransactionResponse } from "ethers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { 
+  RiskVault, 
+  MockAUSDC, 
+  MockCUSDT, 
+  RiskToken,
+  UniswapV2Factory,
+  UniswapV2Router02,
+  WETH,
+  UniswapV2Pair
+} from "../typechain-types";
 
 describe("Uniswap Trading Tests", function () {
-  let vault;
-  let ausdc;
-  let cusdt;
-  let owner, user;
-  let factory;
-  let router;
-  let weth;
-  let seniorToken;
-  let juniorToken;
-  let seniorJuniorPair;
-  let seniorAUSDCPair;
-  let juniorCUSDTPair;
+  let vault: RiskVault;
+  let ausdc: MockAUSDC;
+  let cusdt: MockCUSDT;
+  let owner: SignerWithAddress;
+  let user: SignerWithAddress;
+  let factory: UniswapV2Factory;
+  let router: UniswapV2Router02;
+  let weth: WETH;
+  let seniorToken: RiskToken;
+  let juniorToken: RiskToken;
+  let seniorJuniorPair: string;
+  let seniorAUSDCPair: string;
+  let juniorCUSDTPair: string;
 
   beforeEach(async () => {
     [owner, user] = await ethers.getSigners();
@@ -106,14 +117,15 @@ describe("Uniswap Trading Tests", function () {
       console.log("Senior Allowance:", seniorAllowance.toString());
       console.log("Junior Allowance:", juniorAllowance.toString());
 
-      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600; // 1 hour from now
+      const latestBlock = await ethers.provider.getBlock('latest');
+      const deadline = latestBlock!.timestamp + 3600; // 1 hour from now
 
       // Check if pair exists and has reserves
       const pairAddress = await factory.getPair(await seniorToken.getAddress(), await juniorToken.getAddress());
       console.log("Pair address:", pairAddress);
 
-      if (pairAddress !== ethers.ZeroAddress) {
-        const pair = await ethers.getContractAt("UniswapV2Pair", pairAddress);
+      if (pairAddress !== ZeroAddress) {
+        const pair = await ethers.getContractAt("UniswapV2Pair", pairAddress) as UniswapV2Pair;
         const reserves = await pair.getReserves();
         console.log("Reserves before adding liquidity:", reserves);
 
@@ -138,9 +150,9 @@ describe("Uniswap Trading Tests", function () {
       );
 
       // Check liquidity was added
-      const pair = await ethers.getContractAt("UniswapV2Pair", seniorJuniorPair);
+      const pair = await ethers.getContractAt("UniswapV2Pair", seniorJuniorPair) as UniswapV2Pair;
       const liquidity = await pair.balanceOf(user.address);
-      expect(liquidity).to.be.greaterThan(0);
+      expect(liquidity).to.be.greaterThan(0n);
     });
 
     it("should add liquidity to Senior-aUSDC pair", async () => {
@@ -159,7 +171,8 @@ describe("Uniswap Trading Tests", function () {
       await seniorToken.connect(user).approve(await router.getAddress(), seniorAmount);
       await ausdc.connect(user).approve(await router.getAddress(), ausdcAmount);
 
-      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+      const latestBlock = await ethers.provider.getBlock('latest');
+      const deadline = latestBlock!.timestamp + 3600;
 
       await router.connect(user).addLiquidity(
         await seniorToken.getAddress(),
@@ -172,9 +185,9 @@ describe("Uniswap Trading Tests", function () {
         deadline
       );
 
-      const pair = await ethers.getContractAt("UniswapV2Pair", seniorAUSDCPair);
+      const pair = await ethers.getContractAt("UniswapV2Pair", seniorAUSDCPair) as UniswapV2Pair;
       const liquidity = await pair.balanceOf(user.address);
-      expect(liquidity).to.be.greaterThan(0);
+      expect(liquidity).to.be.greaterThan(0n);
     });
   });
 
@@ -194,7 +207,8 @@ describe("Uniswap Trading Tests", function () {
       
       console.log("Available tokens - Senior:", seniorBalance.toString(), "Junior:", juniorBalance.toString());
       
-      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+      const latestBlock = await ethers.provider.getBlock('latest');
+      const deadline = latestBlock!.timestamp + 3600;
 
       // Set up Senior-Junior pair (needed for most swap tests)
       if (Number(seniorBalance) >= liquidityAmount && Number(juniorBalance) >= liquidityAmount) {
@@ -235,7 +249,8 @@ describe("Uniswap Trading Tests", function () {
 
       await seniorToken.connect(user).approve(await router.getAddress(), swapAmount);
 
-      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+      const latestBlock = await ethers.provider.getBlock('latest');
+      const deadline = latestBlock!.timestamp + 3600;
       const path = [await seniorToken.getAddress(), await juniorToken.getAddress()];
 
       await router.connect(user).swapExactTokensForTokens(
@@ -256,7 +271,8 @@ describe("Uniswap Trading Tests", function () {
 
       await juniorToken.connect(user).approve(await router.getAddress(), swapAmount);
 
-      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+      const latestBlock = await ethers.provider.getBlock('latest');
+      const deadline = latestBlock!.timestamp + 3600;
       const path = [await juniorToken.getAddress(), await seniorToken.getAddress()];
 
       await router.connect(user).swapExactTokensForTokens(
@@ -277,7 +293,8 @@ describe("Uniswap Trading Tests", function () {
 
       await seniorToken.connect(user).approve(await router.getAddress(), swapAmount);
 
-      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+      const latestBlock = await ethers.provider.getBlock('latest');
+      const deadline = latestBlock!.timestamp + 3600;
       const path = [await seniorToken.getAddress(), await ausdc.getAddress()];
 
       await router.connect(user).swapExactTokensForTokens(
@@ -300,7 +317,8 @@ describe("Uniswap Trading Tests", function () {
 
       await ausdc.connect(user).approve(await router.getAddress(), swapAmount);
 
-      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+      const latestBlock = await ethers.provider.getBlock('latest');
+      const deadline = latestBlock!.timestamp + 3600;
       const path = [await ausdc.getAddress(), await seniorToken.getAddress()];
 
       await router.connect(user).swapExactTokensForTokens(
@@ -323,7 +341,8 @@ describe("Uniswap Trading Tests", function () {
 
       await ausdc.connect(user).approve(await router.getAddress(), swapAmount);
 
-      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+      const latestBlock = await ethers.provider.getBlock('latest');
+      const deadline = latestBlock!.timestamp + 3600;
       const path = [
         await ausdc.getAddress(),
         await seniorToken.getAddress(),
@@ -344,7 +363,7 @@ describe("Uniswap Trading Tests", function () {
   });
 
   describe("Liquidity Removal", function () {
-    let liquidityTokens;
+    let liquidityTokens: bigint;
 
     beforeEach(async () => {
       // Add initial liquidity - need > 1000 each
@@ -352,9 +371,10 @@ describe("Uniswap Trading Tests", function () {
       await seniorToken.connect(user).approve(await router.getAddress(), liquidityAmount);
       await juniorToken.connect(user).approve(await router.getAddress(), liquidityAmount);
 
-      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+      const latestBlock = await ethers.provider.getBlock('latest');
+      const deadline = latestBlock!.timestamp + 3600;
 
-      const result = await router.connect(user).addLiquidity(
+      await router.connect(user).addLiquidity(
         await seniorToken.getAddress(),
         await juniorToken.getAddress(),
         liquidityAmount,
@@ -362,18 +382,19 @@ describe("Uniswap Trading Tests", function () {
         0, 0, user.address, deadline
       );
 
-      const pair = await ethers.getContractAt("UniswapV2Pair", seniorJuniorPair);
+      const pair = await ethers.getContractAt("UniswapV2Pair", seniorJuniorPair) as UniswapV2Pair;
       liquidityTokens = await pair.balanceOf(user.address);
     });
 
     it("should remove liquidity from Senior-Junior pair", async () => {
-      const pair = await ethers.getContractAt("UniswapV2Pair", seniorJuniorPair);
+      const pair = await ethers.getContractAt("UniswapV2Pair", seniorJuniorPair) as UniswapV2Pair;
       await pair.connect(user).approve(await router.getAddress(), liquidityTokens);
 
       const initialSeniorBalance = await seniorToken.balanceOf(user.address);
       const initialJuniorBalance = await juniorToken.balanceOf(user.address);
 
-      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+      const latestBlock = await ethers.provider.getBlock('latest');
+      const deadline = latestBlock!.timestamp + 3600;
 
       await router.connect(user).removeLiquidity(
         await seniorToken.getAddress(),
@@ -403,7 +424,8 @@ describe("Uniswap Trading Tests", function () {
       await seniorToken.connect(user).approve(await router.getAddress(), liquidityAmount);
       await juniorToken.connect(user).approve(await router.getAddress(), liquidityAmount);
 
-      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+      const latestBlock = await ethers.provider.getBlock('latest');
+      const deadline = latestBlock!.timestamp + 3600;
 
       await router.connect(user).addLiquidity(
         await seniorToken.getAddress(),
@@ -442,7 +464,8 @@ describe("Uniswap Trading Tests", function () {
       await seniorToken.connect(user).approve(await router.getAddress(), liquidityAmount);
       await juniorToken.connect(user).approve(await router.getAddress(), liquidityAmount);
 
-      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+      const latestBlock = await ethers.provider.getBlock('latest');
+      const deadline = latestBlock!.timestamp + 3600;
 
       await expect(
         router.connect(user).addLiquidity(
@@ -469,7 +492,8 @@ describe("Uniswap Trading Tests", function () {
       await seniorToken.connect(user).approve(await router.getAddress(), liquidityAmount);
       await juniorToken.connect(user).approve(await router.getAddress(), liquidityAmount);
 
-      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+      const latestBlock = await ethers.provider.getBlock('latest');
+      const deadline = latestBlock!.timestamp + 3600;
 
       await router.connect(user).addLiquidity(
         await seniorToken.getAddress(),
@@ -486,7 +510,8 @@ describe("Uniswap Trading Tests", function () {
 
       await seniorToken.connect(user).approve(await router.getAddress(), largeSwapAmount);
 
-      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+      const latestBlock = await ethers.provider.getBlock('latest');
+      const deadline = latestBlock!.timestamp + 3600;
       const path = [await seniorToken.getAddress(), await juniorToken.getAddress()];
 
       // Get expected output before swap
@@ -504,7 +529,8 @@ describe("Uniswap Trading Tests", function () {
       const actualOutput = finalJuniorBalance - initialJuniorBalance;
 
       // Verify we got approximately expected output (allowing for some variance)
-      expect(actualOutput).to.be.closeTo(expectedOutput[1], expectedOutput[1] / 100n); // Within 1%
+      const tolerance = expectedOutput[1] / 100n; // Within 1%
+      expect(actualOutput).to.be.within(expectedOutput[1] - tolerance, expectedOutput[1] + tolerance);
     });
   });
 });
