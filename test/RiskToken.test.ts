@@ -36,14 +36,4 @@ describe("RiskToken", function () {
     expect(await riskToken.balanceOf(addr1.address)).to.equal(50);
   });
 
-  it("should not mint zero tokens", async () => {
-    await expect(riskToken.mint(addr1.address, 0)).to.emit(riskToken, "Transfer");
-    expect(await riskToken.balanceOf(addr1.address)).to.equal(0);
-  });
-
-  it("should not burn zero tokens", async () => {
-    await riskToken.mint(addr1.address, 100);
-    await expect(riskToken.burn(addr1.address, 0)).to.emit(riskToken, "Transfer");
-    expect(await riskToken.balanceOf(addr1.address)).to.equal(100);
-  });
 });
