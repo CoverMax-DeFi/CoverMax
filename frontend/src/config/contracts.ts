@@ -7,6 +7,7 @@ export enum SupportedChainId {
   HEDERA_TESTNET = 296,
   MANTLE_TESTNET = 5003,
   XRPL_TESTNET = 1449000,
+  MOONBEAM_TESTNET = 1287,
 }
 
 // Contract names enum for type safety
@@ -45,6 +46,17 @@ export const MULTI_CHAIN_ADDRESSES: Record<SupportedChainId, Partial<Record<Cont
     [ContractName.JUNIOR_TOKEN]: "0xA050373612033aA1440a549496400cA48a84Cbdd",
     [ContractName.SENIOR_TOKEN]: "0xd3ef53FC2874522Aee118640f6e4B632573Ea474",
     [ContractName.SENIOR_JUNIOR_PAIR]: "0x8609546aE826d023c804a48218FD5EC3037e2059",
+  },
+  [SupportedChainId.MOONBEAM_TESTNET]: {
+    [ContractName.MOCK_AUSDC]: "0x7f61393E1E0340ffA9108E1e42004Fe370FFC009",
+    [ContractName.MOCK_CUSDT]: "0xD1778a3Ac473bcd84C18fb872a042E58baD7Ca57",
+    [ContractName.WETH]: "0x079ae146407027a1Bfe5F6957Ed8108bC4dD1F81",
+    [ContractName.UNISWAP_V2_FACTORY]: "0x77b84973c1a3382FEA7768730F467C2325974FEf",
+    [ContractName.UNISWAP_V2_ROUTER]: "0x014DD22Fe0dC9fbD4494eFa09c1889a94A801F62",
+    [ContractName.RISK_VAULT]: "0x0A3084651A5E3D39B237D8C8a6Ea25B019327ab1",
+    [ContractName.JUNIOR_TOKEN]: "0x8b1A793A77B7d09823Fb5ed934E974Ac3E52ca7e",
+    [ContractName.SENIOR_TOKEN]: "0x78d186Ab2fB7aCB5Dd85b3D0Dbec58e9F1a8607E",
+    [ContractName.SENIOR_JUNIOR_PAIR]: "0x6aa77654014443a443A8490366aD6AD2af529750",
   },
   [SupportedChainId.MANTLE_TESTNET]: {
     [ContractName.MOCK_AUSDC]: "0x0ad1167FaEAE7e0E64d3C050fa85e0a0ff53A19f",
@@ -161,6 +173,20 @@ export const CHAIN_CONFIGS: Record<SupportedChainId, {
     rpcUrls: ["https://rpc.testnet.xrplevm.org"],
     blockExplorerUrls: ["https://explorer.testnet.xrplevm.org"],
     icon: "💧",
+    isTestnet: true,
+  },
+  [SupportedChainId.MOONBEAM_TESTNET]: {
+    chainId: 1287,
+    chainName: "Moonbase Alpha",
+    networkName: "moonbeam-testnet",
+    nativeCurrency: {
+      name: "DEV",
+      symbol: "DEV",
+      decimals: 18,
+    },
+    rpcUrls: ["https://rpc.api.moonbase.moonbeam.network"],
+    blockExplorerUrls: ["https://moonbase.moonscan.io"],
+    icon: "🌙",
     isTestnet: true,
   },
 };

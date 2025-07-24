@@ -3,56 +3,58 @@ const fs = require('fs');
 const path = require('path');
 
 // Read deployed addresses
-const deployedAddressesPath = path.join(__dirname, '../ignition/deployments/chain-1449000/deployed_addresses.json');
+const deployedAddressesPath = path.join(__dirname, '../ignition/deployments/chain-1287/deployed_addresses.json');
 const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, 'utf8'));
 
 // Contract verification configurations
 const verificationConfigs = [
   {
     name: 'MockAUSDC',
-    address: deployedAddresses['RiskTokenModule#MockAUSDC'],
-    constructorArgs: []
+    address: deployedAddresses['RiskTokenSequentialModule#MockAUSDC'],
+    constructorArgs: [],
+    contract: 'contracts/mocks/MockAUSDC.sol:MockAUSDC'
   },
   {
     name: 'MockCUSDT', 
-    address: deployedAddresses['RiskTokenModule#MockCUSDT'],
-    constructorArgs: []
+    address: deployedAddresses['RiskTokenSequentialModule#MockCUSDT'],
+    constructorArgs: [],
+    contract: 'contracts/mocks/MockCUSDT.sol:MockCUSDT'
   },
   {
     name: 'WETH',
-    address: deployedAddresses['RiskTokenModule#WETH'],
+    address: deployedAddresses['RiskTokenSequentialModule#WETH'],
     constructorArgs: []
   },
   {
     name: 'UniswapV2Factory',
-    address: deployedAddresses['RiskTokenModule#UniswapV2Factory'],
-    constructorArgs: [process.env.DEPLOYER_ADDRESS || '0x'] // Will need to be updated with actual deployer
+    address: deployedAddresses['RiskTokenSequentialModule#UniswapV2Factory'],
+    constructorArgs: ['0x4F2cD1d7Ec17639e48a9BcD19fcEF65BA8D93C42'] // Deployer address from deployment
   },
   {
     name: 'RiskVault',
-    address: deployedAddresses['RiskTokenModule#RiskVault'],
+    address: deployedAddresses['RiskTokenSequentialModule#RiskVault'],
     constructorArgs: [
-      deployedAddresses['RiskTokenModule#MockAUSDC'],
-      deployedAddresses['RiskTokenModule#MockCUSDT']
+      deployedAddresses['RiskTokenSequentialModule#MockAUSDC'],
+      deployedAddresses['RiskTokenSequentialModule#MockCUSDT']
     ]
   },
   {
     name: 'UniswapV2Router02',
-    address: deployedAddresses['RiskTokenModule#UniswapV2Router02'],
+    address: deployedAddresses['RiskTokenSequentialModule#UniswapV2Router02'],
     constructorArgs: [
-      deployedAddresses['RiskTokenModule#UniswapV2Factory'],
-      deployedAddresses['RiskTokenModule#WETH']
+      deployedAddresses['RiskTokenSequentialModule#UniswapV2Factory'],
+      deployedAddresses['RiskTokenSequentialModule#WETH']
     ]
   },
   {
     name: 'RiskToken (Senior)',
-    address: deployedAddresses['RiskTokenModule#seniorTokenContract'],
+    address: deployedAddresses['RiskTokenSequentialModule#seniorTokenContract'],
     constructorArgs: ['CoverMax Senior Token', 'CM-SENIOR'],
     contract: 'contracts/RiskToken.sol:RiskToken'
   },
   {
     name: 'RiskToken (Junior)',
-    address: deployedAddresses['RiskTokenModule#juniorTokenContract'], 
+    address: deployedAddresses['RiskTokenSequentialModule#juniorTokenContract'], 
     constructorArgs: ['CoverMax Junior Token', 'CM-JUNIOR'],
     contract: 'contracts/RiskToken.sol:RiskToken'
   }
@@ -65,7 +67,7 @@ async function verifyContract(config, retries = 3) {
       : '';
     
     const contractFlag = config.contract ? ` --contract ${config.contract}` : '';
-    const command = `npx hardhat verify --network xrplTestnet${contractFlag} ${config.address}${argsString}`;
+    const command = `npx hardhat verify --network moonbeamTestnet${contractFlag} ${config.address}${argsString}`;
     
     console.log(`\n🔍 Verifying ${config.name}...`);
     console.log(`Address: ${config.address}`);
@@ -102,7 +104,7 @@ async function verifyContract(config, retries = 3) {
 }
 
 async function verifyAllContracts() {
-  console.log('🚀 Starting XRPL contract verification...\n');
+  console.log('🚀 Starting Moonbeam contract verification...\n');
   
   for (const config of verificationConfigs) {
     try {
@@ -116,7 +118,7 @@ async function verifyAllContracts() {
   
   console.log('\n🎉 Contract verification process completed!');
   console.log('\n📋 Summary:');
-  console.log('Check https://explorer.testnet.xrplevm.org/ to view your verified contracts');
+  console.log('Check https://moonbase.moonscan.io/ to view your verified contracts');
 }
 
 // Run the verification
