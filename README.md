@@ -249,7 +249,11 @@ Contributions welcome! This project includes:
 
 ## 📜 License
 
-MIT License
+Business Source License 1.1 - See [LICENSE](LICENSE) for details.
+
+The CoverMax Protocol is licensed under the Business Source License 1.1, which allows free use for non-commercial purposes. Commercial use requires a separate license. On April 30, 2027, the license will automatically convert to AGPL v3.
+
+For commercial licensing inquiries, contact: legal@covermax.fi
 
 ---
 
