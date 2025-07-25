@@ -79,22 +79,8 @@ const config: HardhatUserConfig = {
     currency: "USD",
   },
   etherscan: {
-    apiKey: {
-      // Flow networks
-      flowTestnet: "no-api-key-required",
-      // Hedera networks
-      hederaTestnet: "no-api-key-required",
-      // Mantle networks
-      mantleTestnet: process.env.MANTLESCAN_API_KEY || process.env.ETHERSCAN_API_KEY || "",
-      // XRPL EVM networks
-      xrplTestnet: "no-api-key-required",
-      // Moonbeam networks
-      moonbeamTestnet: process.env.MOONSCAN_API_KEY || "no-api-key-required",
-      moonbaseAlpha: process.env.MOONSCAN_API_KEY || "no-api-key-required", // Alternative name
-      // Other networks
-      mainnet: process.env.ETHERSCAN_API_KEY || "",
-      sepolia: process.env.ETHERSCAN_API_KEY || "",
-    },
+    // Use a single API key for Etherscan v2
+    apiKey: process.env.ETHERSCAN_API_KEY || "",
     customChains: [
       {
         network: "flowTestnet",
