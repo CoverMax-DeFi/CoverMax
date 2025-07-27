@@ -10,32 +10,24 @@ import { Code, Zap, TrendingUp, Users, DollarSign, Target } from 'lucide-react';
 interface ProtocolDemo {
   name: string;
   logo: string;
-  odds: {
-    hack: number;
-    safe: number;
-  };
 }
 
 const demoProtocols: ProtocolDemo[] = [
   {
     name: 'Aave',
-    logo: '🏦',
-    odds: { hack: 1.15, safe: 6.5 }
+    logo: '🏦'
   },
   {
     name: 'Compound',
-    logo: '🏛️',
-    odds: { hack: 1.20, safe: 5.8 }
+    logo: '🏛️'
   },
   {
     name: 'Uniswap V3',
-    logo: '🦄',
-    odds: { hack: 1.35, safe: 4.2 }
+    logo: '🦄'
   },
   {
     name: 'Yearn Finance',
-    logo: '💰',
-    odds: { hack: 1.45, safe: 3.8 }
+    logo: '💰'
   }
 ];
 
@@ -49,10 +41,6 @@ const WidgetDemo: React.FC = () => {
 <PredictionMarketWidget
   protocolName="${selectedProtocol.name}"
   protocolLogo="${selectedProtocol.logo}"
-  currentOdds={{
-    hack: ${selectedProtocol.odds.hack},
-    safe: ${selectedProtocol.odds.safe}
-  }}
   timeframe="7 days"
   minBet={10}
   maxPayout={1000}
@@ -92,7 +80,6 @@ const WidgetDemo: React.FC = () => {
             <PredictionMarketWidget
               protocolName={selectedProtocol.name}
               protocolLogo={selectedProtocol.logo}
-              currentOdds={selectedProtocol.odds}
               timeframe="7 days"
               minBet={10}
               maxPayout={1000}
@@ -118,7 +105,7 @@ const WidgetDemo: React.FC = () => {
                     <div>
                       <div className="text-white font-medium">{protocol.name}</div>
                       <div className="text-xs text-slate-400">
-                        Hack: {protocol.odds.hack}x • Safe: {protocol.odds.safe}x
+                        Live odds from Uniswap pools
                       </div>
                     </div>
                   </div>
