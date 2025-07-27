@@ -2,79 +2,61 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import Navbar from '@/components/Navbar';
-import { Shield, TrendingUp, Users, Clock, CheckCircle, XCircle, Info } from 'lucide-react';
+import PredictionMarketWidget from '@/components/PredictionMarketWidget';
+import { Code, Zap, TrendingUp, Users, DollarSign, Target } from 'lucide-react';
 
-interface Protocol {
+interface ProtocolDemo {
   name: string;
-  tvl: string;
-  riskLevel: 'Low' | 'Medium' | 'High';
   logo: string;
-  description: string;
-  coverage: string;
+  odds: {
+    hack: number;
+    safe: number;
+  };
 }
 
-const protocols: Protocol[] = [
+const demoProtocols: ProtocolDemo[] = [
   {
     name: 'Aave',
-    tvl: '$12.4B',
-    riskLevel: 'Low',
     logo: '🏦',
-    description: 'Leading lending protocol',
-    coverage: '$500K'
+    odds: { hack: 1.15, safe: 6.5 }
   },
   {
     name: 'Compound',
-    tvl: '$3.2B',
-    riskLevel: 'Low',
     logo: '🏛️',
-    description: 'Decentralized lending platform',
-    coverage: '$300K'
+    odds: { hack: 1.20, safe: 5.8 }
   },
   {
     name: 'Uniswap V3',
-    tvl: '$8.1B',
-    riskLevel: 'Medium',
     logo: '🦄',
-    description: 'Automated market maker',
-    coverage: '$400K'
+    odds: { hack: 1.35, safe: 4.2 }
   },
   {
     name: 'Yearn Finance',
-    tvl: '$1.8B',
-    riskLevel: 'Medium',
     logo: '💰',
-    description: 'Yield optimization protocol',
-    coverage: '$250K'
+    odds: { hack: 1.45, safe: 3.8 }
   }
 ];
 
 const WidgetDemo: React.FC = () => {
-  const [selectedProtocol, setSelectedProtocol] = useState<Protocol | null>(null);
-  const [userChoice, setUserChoice] = useState<'yes' | 'no' | null>(null);
-  const [showResult, setShowResult] = useState(false);
+  const [selectedProtocol, setSelectedProtocol] = useState<ProtocolDemo>(demoProtocols[0]);
+  const [showCode, setShowCode] = useState(false);
 
-  const handleProtocolSelect = (protocol: Protocol) => {
-    setSelectedProtocol(protocol);
-    setUserChoice(null);
-    setShowResult(false);
-  };
+  const codeExample = `import PredictionMarketWidget from '@/components/PredictionMarketWidget';
 
-  const handleChoice = (choice: 'yes' | 'no') => {
-    setUserChoice(choice);
-    setShowResult(true);
-  };
-
-  const getRiskColor = (risk: string) => {
-    switch (risk) {
-      case 'Low': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'High': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
+// Embed in your protocol page
+<PredictionMarketWidget
+  protocolName="${selectedProtocol.name}"
+  protocolLogo="${selectedProtocol.logo}"
+  currentOdds={{
+    hack: ${selectedProtocol.odds.hack},
+    safe: ${selectedProtocol.odds.safe}
+  }}
+  timeframe="7 days"
+  minBet={10}
+  maxPayout={1000}
+/>`;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -91,279 +73,174 @@ const WidgetDemo: React.FC = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold text-white mb-2">
-            CoverMax Insurance Widget
+            CoverMax Prediction Market Widget
           </h1>
           <p className="text-slate-300 max-w-3xl mx-auto">
-            A simple question that abstracts away insurance complexity:
-            <span className="font-semibold text-blue-400"> Do you think this protocol will get hacked in the next 7 days?</span>
+            A standalone component that turns protocol security into a <span className="font-semibold text-purple-400">profitable prediction game</span>.
+            No insurance jargon, just pure speculation on DeFi protocol outcomes.
           </p>
         </div>
 
-        {/* How it works */}
+        {/* Live Demo */}
+        <div className="grid lg:grid-cols-2 gap-8 mb-8">
+          {/* Widget Demo */}
+          <div>
+            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+              <Zap className="h-5 w-5 text-purple-400" />
+              Live Demo Widget
+            </h2>
+            <PredictionMarketWidget
+              protocolName={selectedProtocol.name}
+              protocolLogo={selectedProtocol.logo}
+              currentOdds={selectedProtocol.odds}
+              timeframe="7 days"
+              minBet={10}
+              maxPayout={1000}
+            />
+          </div>
+
+          {/* Protocol Selector */}
+          <div>
+            <h2 className="text-xl font-semibold text-white mb-4">Choose Protocol to Demo</h2>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {demoProtocols.map((protocol) => (
+                <button
+                  key={protocol.name}
+                  onClick={() => setSelectedProtocol(protocol)}
+                  className={`p-4 rounded-lg border-2 transition-all text-left ${
+                    selectedProtocol.name === protocol.name
+                      ? 'border-purple-500 bg-purple-500/20'
+                      : 'border-slate-600 bg-slate-700/50 hover:border-purple-400'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{protocol.logo}</span>
+                    <div>
+                      <div className="text-white font-medium">{protocol.name}</div>
+                      <div className="text-xs text-slate-400">
+                        Hack: {protocol.odds.hack}x • Safe: {protocol.odds.safe}x
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-white text-lg">Why This Works</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-slate-300">
+                <div className="flex items-start gap-3">
+                  <Target className="h-5 w-5 text-green-400 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-white">Feels Like Speculation</h4>
+                    <p className="text-sm">Users love betting on outcomes - no complex insurance terminology</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <DollarSign className="h-5 w-5 text-blue-400 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-white">Clear Profit Motive</h4>
+                    <p className="text-sm">Show exact payouts and odds to drive engagement</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Zap className="h-5 w-5 text-purple-400 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-white">Embeddable Anywhere</h4>
+                    <p className="text-sm">Drop into any protocol page, forum, or dApp</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Implementation Code */}
         <Card className="mb-8 bg-slate-800/50 border-slate-700 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <Info className="h-5 w-5 text-blue-400" />
-              How it works
+              <Code className="h-5 w-5 text-green-400" />
+              Easy Integration
             </CardTitle>
+            <CardDescription className="text-slate-300">
+              Copy and paste this component anywhere. Perfect for embedding on Aave, Compound, or any DeFi protocol page.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="text-slate-300">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-400" />
-                  <div>
-                    <h4 className="font-semibold text-white">Answer "YES" (I think it will get hacked)</h4>
-                    <p className="text-sm text-slate-400">You become an insurance buyer - get coverage if the protocol is exploited</p>
-                  </div>
-                </div>
+          <CardContent>
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-sm text-slate-400">React Component</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCode(!showCode)}
+                className="text-slate-300 border-slate-600 hover:bg-slate-700"
+              >
+                {showCode ? 'Hide Code' : 'Show Code'}
+              </Button>
+            </div>
+
+            {showCode && (
+              <div className="bg-slate-900/50 rounded-lg p-4 overflow-x-auto">
+                <pre className="text-sm text-green-400">
+                  <code>{codeExample}</code>
+                </pre>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <XCircle className="h-5 w-5 text-red-400" />
-                  <div>
-                    <h4 className="font-semibold text-white">Answer "NO" (I don't think it will get hacked)</h4>
-                    <p className="text-sm text-slate-400">You become an underwriter - earn premiums if the protocol stays safe</p>
-                  </div>
-                </div>
+            )}
+
+            <div className="grid md:grid-cols-3 gap-4 mt-4 text-sm">
+              <div className="text-center p-3 bg-slate-700/30 rounded-lg">
+                <div className="text-white font-medium">Single Component</div>
+                <div className="text-slate-400">No dependencies</div>
+              </div>
+              <div className="text-center p-3 bg-slate-700/30 rounded-lg">
+                <div className="text-white font-medium">Customizable</div>
+                <div className="text-slate-400">Odds, logos, timeframes</div>
+              </div>
+              <div className="text-center p-3 bg-slate-700/30 rounded-lg">
+                <div className="text-white font-medium">Mobile Ready</div>
+                <div className="text-slate-400">Responsive design</div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Protocol Selection */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-white mb-4">Select a Protocol to Insure</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {protocols.map((protocol) => (
-              <Card
-                key={protocol.name}
-                className={`cursor-pointer transition-all duration-200 backdrop-blur-sm ${
-                  selectedProtocol?.name === protocol.name
-                    ? 'border-2 border-blue-500 bg-blue-500/10'
-                    : 'border border-slate-700 bg-slate-800/50 hover:border-slate-600'
-                }`}
-                onClick={() => handleProtocolSelect(protocol)}
-              >
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <div className="text-3xl mb-2">{protocol.logo}</div>
-                    <h3 className="font-bold text-white text-lg">{protocol.name}</h3>
-                    <p className="text-slate-400 text-sm mb-3">{protocol.description}</p>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-slate-400">TVL:</span>
-                        <span className="text-white font-medium">{protocol.tvl}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-slate-400">Coverage:</span>
-                        <span className="text-white font-medium">{protocol.coverage}</span>
-                      </div>
-                      <Badge className={`w-full justify-center ${getRiskColor(protocol.riskLevel)}`}>
-                        {protocol.riskLevel} Risk
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* The Question */}
-        {selectedProtocol && (
-          <Card className="mb-8 bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-            <CardHeader className="text-center">
-              <CardTitle className="text-white flex items-center justify-center gap-3">
-                <span className="text-2xl">{selectedProtocol.logo}</span>
-                The Question for {selectedProtocol.name}
-              </CardTitle>
-              <CardDescription className="text-slate-300">
-                Based on your assessment of this protocol's security and market conditions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-white mb-4">
-                  Do you think {selectedProtocol.name} will get hacked in the next 7 days?
-                </h3>
-                <div className="flex justify-center gap-6">
-                  <Button
-                    size="lg"
-                    className={`px-8 py-4 text-lg font-semibold min-w-32 ${
-                      userChoice === 'yes'
-                        ? 'bg-red-600 hover:bg-red-700'
-                        : 'bg-slate-700 hover:bg-red-600 text-white'
-                    }`}
-                    onClick={() => handleChoice('yes')}
-                  >
-                    YES
-                  </Button>
-                  <Button
-                    size="lg"
-                    className={`px-8 py-4 text-lg font-semibold min-w-32 ${
-                      userChoice === 'no'
-                        ? 'bg-green-600 hover:bg-green-700'
-                        : 'bg-slate-700 hover:bg-green-600 text-white'
-                    }`}
-                    onClick={() => handleChoice('no')}
-                  >
-                    NO
-                  </Button>
-                </div>
-              </div>
-
-              {/* Result */}
-              {showResult && userChoice && (
-                <div className="space-y-6">
-                  <Separator className="bg-slate-600" />
-
-                  <Alert className={`backdrop-blur-sm ${
-                    userChoice === 'yes' ? 'border-red-500 bg-red-500/10' : 'border-green-500 bg-green-500/10'
-                  }`}>
-                    <AlertDescription className="text-lg">
-                      {userChoice === 'yes' ? (
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-3">
-                            <Shield className="h-6 w-6 text-red-400" />
-                            <span className="font-semibold text-white">You chose: Insurance Buyer</span>
-                          </div>
-                          <div className="text-slate-300">
-                            <p className="mb-3">Here's what happens behind the scenes:</p>
-                            <ul className="space-y-2 ml-4">
-                              <li className="flex items-start gap-2">
-                                <span className="text-blue-400">•</span>
-                                <span>You deposit USDC and receive CM-Senior and CM-Junior risk tokens</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <span className="text-blue-400">•</span>
-                                <span>You <strong className="text-white">hold</strong> these tokens, meaning you bear the insurance risk</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <span className="text-blue-400">•</span>
-                                <span>If {selectedProtocol.name} gets hacked, you can claim compensation</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <span className="text-blue-400">•</span>
-                                <span>If nothing happens, you earn yield from your deposited assets</span>
-                              </li>
-                            </ul>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-3">
-                            <TrendingUp className="h-6 w-6 text-green-400" />
-                            <span className="font-semibold text-white">You chose: Insurance Provider (Underwriter)</span>
-                          </div>
-                          <div className="text-slate-300">
-                            <p className="mb-3">Here's what happens behind the scenes:</p>
-                            <ul className="space-y-2 ml-4">
-                              <li className="flex items-start gap-2">
-                                <span className="text-green-400">•</span>
-                                <span>You deposit USDC and receive CM-Senior and CM-Junior risk tokens</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <span className="text-green-400">•</span>
-                                <span>You <strong className="text-white">sell</strong> these tokens on Uniswap, transferring risk to buyers</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <span className="text-green-400">•</span>
-                                <span>You earn premiums from token sales plus yield from deposits</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <span className="text-green-400">•</span>
-                                <span>If {selectedProtocol.name} stays safe, you keep all earnings</span>
-                              </li>
-                            </ul>
-                          </div>
-                        </div>
-                      )}
-                    </AlertDescription>
-                  </Alert>
-
-                  {/* Transaction Details */}
-                  <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-                    <CardHeader>
-                      <CardTitle className="text-white flex items-center gap-2">
-                        <Clock className="h-5 w-5 text-blue-400" />
-                        Transaction Details
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid md:grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <span className="text-slate-400">Coverage Amount:</span>
-                          <p className="text-white font-medium">{selectedProtocol.coverage}</p>
-                        </div>
-                        <div>
-                          <span className="text-slate-400">Coverage Period:</span>
-                          <p className="text-white font-medium">7 days</p>
-                        </div>
-                        <div>
-                          <span className="text-slate-400">Protocol Risk:</span>
-                          <Badge className={getRiskColor(selectedProtocol.riskLevel)}>
-                            {selectedProtocol.riskLevel}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <Separator className="bg-slate-600" />
-
-                      <div className="text-center">
-                        <Button
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
-                          size="lg"
-                        >
-                          {userChoice === 'yes' ? 'Get Insurance Coverage' : 'Provide Insurance Coverage'}
-                        </Button>
-                        <p className="text-slate-400 text-sm mt-2">
-                          Connect your wallet to proceed with the transaction
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Benefits Section */}
+        {/* Business Value */}
         <div className="grid md:grid-cols-3 gap-6">
           <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
-                <Shield className="h-5 w-5 text-blue-400" />
-                Simple & Intuitive
+                <Target className="h-5 w-5 text-purple-400" />
+                Mass Market Appeal
               </CardTitle>
             </CardHeader>
             <CardContent className="text-slate-300">
-              <p>No need to understand complex insurance mechanics. Just answer a simple question based on your market view.</p>
+              <p>Transforms complex insurance into simple betting. Crypto users love speculation and profit opportunities.</p>
             </CardContent>
           </Card>
 
           <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
-                <Users className="h-5 w-5 text-green-400" />
-                Community Driven
+                <Zap className="h-5 w-5 text-blue-400" />
+                Viral Distribution
               </CardTitle>
             </CardHeader>
             <CardContent className="text-slate-300">
-              <p>Your opinion contributes to a decentralized insurance pool that protects the entire DeFi ecosystem.</p>
+              <p>Embeddable widgets spread organically. Each protocol becomes a distribution channel for CoverMax.</p>
             </CardContent>
           </Card>
 
           <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-purple-400" />
-                Earn While You Protect
+                <DollarSign className="h-5 w-5 text-green-400" />
+                Hidden Insurance
               </CardTitle>
             </CardHeader>
             <CardContent className="text-slate-300">
-              <p>Whether you're buying or providing insurance, you earn yield from the underlying protocols.</p>
+              <p>Users get insurance coverage without realizing it. Behind the scenes, CoverMax handles all the complexity.</p>
             </CardContent>
           </Card>
         </div>
