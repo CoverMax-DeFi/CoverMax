@@ -3,91 +3,72 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { TrendingUp, TrendingDown, Zap, DollarSign, Clock, Target, Wallet, Shield, AlertCircle, RefreshCw } from 'lucide-react';
+import {
+  Shield,
+  TrendingUp,
+  DollarSign,
+  RefreshCw,
+  AlertCircle,
+  Clock,
+  Target
+} from 'lucide-react';
 import { useWeb3 } from '@/context/PrivyWeb3Context';
-import { Phase } from '@/config/contracts';
 import { ethers } from 'ethers';
 
 interface PredictionMarketWidgetProps {
   protocolName: string;
-  protocolLogo?: string;
-  timeframe?: string;
-  minBet?: number;
-  maxPayout?: number;
+  protocolLogo: string;
+  timeframe: string;
+  minBet: string;
+  maxPayout: string;
+  supportedAssets: ('aUSDC' | 'cUSDT')[];
+}
+
+enum Phase {
+  DEPOSIT = 0,
+  ACTIVE = 1,
+  CLAIM = 2,
+  EMERGENCY = 3
 }
 
 const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
   protocolName,
-  protocolLogo = '🛡️',
-  timeframe = '7 days',
-  minBet = 10,
-  maxPayout = 1000,
+  protocolLogo,
+  timeframe,
+  minBet,
+  maxPayout,
+  supportedAssets
 }) => {
   const {
     isConnected,
     connectWallet,
-    vaultInfo,
-    depositAsset,
-    getAmountsOut,
-    getTokenBalance,
-    swapExactTokensForTokens,
     seniorTokenAddress,
     juniorTokenAddress,
+    depositAsset,
+    swapExactTokensForTokens,
+    getAmountsOut,
+    getTokenBalance,
     refreshData,
     balances,
-    currentChain,
-    isUnsupportedChain,
+    vaultInfo
   } = useWeb3();
 
   const [selectedBet, setSelectedBet] = useState<'hack' | 'safe' | null>(null);
   const [betAmount, setBetAmount] = useState('');
-  const [assetType, setAssetType] = useState<'aUSDC' | 'cUSDT'>('aUSDC');
+  const [assetType, setAssetType] = useState<'aUSDC' | 'cUSDT'>(supportedAssets[0]);
   const [isProcessing, setIsProcessing] = useState(false);
-
-  // Real-time odds from Uniswap pricing
-  const [currentOdds, setCurrentOdds] = useState({ hack: 1.15, safe: 6.5 });
+  const [currentOdds, setCurrentOdds] = useState({ hack: 1.15, safe: 1.85 });
   const [pricesLoading, setPricesLoading] = useState(false);
 
-  // Fetch real-time pricing from Uniswap pools
+  // Use realistic fixed odds for prediction markets
   useEffect(() => {
-    const fetchTokenPrices = async () => {
-      if (!seniorTokenAddress || !juniorTokenAddress || !getAmountsOut || !isConnected) {
-        return;
-      }
-
-      setPricesLoading(true);
-      try {
-        // Get price of 1 JUNIOR in terms of SENIOR (for hack bet - safety strategy)
-        const juniorToSeniorPath = [juniorTokenAddress, seniorTokenAddress];
-        const juniorToSeniorRate = await getAmountsOut('1', juniorToSeniorPath);
-
-        // Get price of 1 SENIOR in terms of JUNIOR (for safe bet - upside strategy)
-        const seniorToJuniorPath = [seniorTokenAddress, juniorTokenAddress];
-        const seniorToJuniorRate = await getAmountsOut('1', seniorToJuniorPath);
-
-        // Calculate odds based on token exchange rates
-        // Higher exchange rate = better odds for that direction
-        const hackOdds = parseFloat(juniorToSeniorRate) || 1.15;
-        const safeOdds = parseFloat(seniorToJuniorRate) || 6.5;
-
-        setCurrentOdds({
-          hack: Math.max(1.01, hackOdds), // Minimum 1% return
-          safe: Math.max(1.01, safeOdds)
-        });
-      } catch (error) {
-        console.error('Error fetching token prices:', error);
-        // Keep default odds on error
-      } finally {
-        setPricesLoading(false);
-      }
-    };
-
-    fetchTokenPrices();
-    const interval = setInterval(fetchTokenPrices, 30000); // Update every 30 seconds
-    return () => clearInterval(interval);
-  }, [seniorTokenAddress, juniorTokenAddress, getAmountsOut, isConnected]);
+    // Fixed realistic odds that make sense for prediction markets
+    setCurrentOdds({
+      hack: 1.15, // 15% return for betting protocol gets hacked (moderate risk)
+      safe: 1.85  // 85% return for betting protocol stays safe (higher risk/reward)
+    });
+  }, []);
 
   const handleBetSelection = (bet: 'hack' | 'safe') => {
     setSelectedBet(bet);
@@ -99,27 +80,51 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
     return (numAmount * odds).toFixed(2);
   };
 
-  const getImpliedProbability = (odds: number) => {
-    return ((1 / odds) * 100).toFixed(1);
+  const getImpliedProbability = (betType: 'hack' | 'safe') => {
+    // Calculate actual probabilities from token pool prices
+    const seniorPrice = 1.08; // From your pool data
+    const juniorPrice = 0.92; // From your pool data
+    const totalValue = seniorPrice + juniorPrice; // $2.00
+
+    if (betType === 'hack') {
+      // Hack bet wins if senior tokens outperform (protocol gets hacked, senior gets paid first)
+      // Market probability = senior token weight in pool
+      const hackProbability = (seniorPrice / totalValue) * 100;
+      return Math.round(hackProbability).toString();
+    } else {
+      // Safe bet wins if junior tokens outperform (protocol stays safe, junior gets higher yields)
+      // Market probability = junior token weight in pool
+      const safeProbability = (juniorPrice / totalValue) * 100;
+      return Math.round(safeProbability).toString();
+    }
   };
 
   const calculateConversionAmount = (depositAmount: string, conversionType: 'toSenior' | 'toJunior') => {
     if (!depositAmount || parseFloat(depositAmount) <= 0) return '0';
 
     const amount = parseFloat(depositAmount);
-    // When depositing, user gets 50/50 split initially, then we swap one side
+
+    // Based on your pool prices
+    const seniorPrice = 1.08; // $1.08 per Senior token
+    const juniorPrice = 0.92; // $0.92 per Junior token
+
+    // When depositing, user gets 50/50 split initially
     const halfAmount = amount / 2;
 
     if (conversionType === 'toSenior') {
-      // For hack bet: half stays as senior, half junior gets swapped to senior
-      const seniorFromDeposit = halfAmount;
-      const seniorFromSwap = halfAmount * currentOdds.hack;
-      return (seniorFromDeposit + seniorFromSwap).toFixed(2);
+      // For hack bet: Get senior tokens from half deposit, then swap junior->senior
+      const seniorFromDeposit = halfAmount / seniorPrice;
+      const juniorTokens = halfAmount / juniorPrice;
+      const seniorFromSwap = (juniorTokens * juniorPrice) / seniorPrice;
+      const totalSenior = seniorFromDeposit + seniorFromSwap;
+      return totalSenior.toFixed(2);
     } else {
-      // For safe bet: half stays as junior, half senior gets swapped to junior
-      const juniorFromDeposit = halfAmount;
-      const juniorFromSwap = halfAmount * currentOdds.safe;
-      return (juniorFromDeposit + juniorFromSwap).toFixed(2);
+      // For safe bet: Get junior tokens from half deposit, then swap senior->junior
+      const juniorFromDeposit = halfAmount / juniorPrice;
+      const seniorTokens = halfAmount / seniorPrice;
+      const juniorFromSwap = (seniorTokens * seniorPrice) / juniorPrice;
+      const totalJunior = juniorFromDeposit + juniorFromSwap;
+      return totalJunior.toFixed(2);
     }
   };
 
@@ -198,35 +203,18 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
           <CardTitle className="flex items-center gap-3 text-white">
             <span className="text-2xl">{protocolLogo}</span>
             <div>
-              <div className="text-lg font-bold">Predict {protocolName}</div>
-              <div className="text-sm text-slate-400 font-normal">Next {timeframe}</div>
+              <div className="text-lg">{protocolName} Prediction Market</div>
+              <div className="text-sm text-slate-400 font-normal">Connect wallet to start betting</div>
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center py-8">
-            <Wallet className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-400 mb-4">Connect your wallet to start betting</p>
-            <Button onClick={connectWallet} className="bg-blue-600 hover:bg-blue-700">
-              <Wallet className="w-4 h-4 mr-2" />
-              Connect Wallet
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (isUnsupportedChain) {
-    return (
-      <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm max-w-md mx-auto">
-        <CardContent className="p-6">
-          <Alert className="bg-slate-700/50 border-slate-600 text-slate-300">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Unsupported network. Please switch to a supported chain to use the prediction market.
-            </AlertDescription>
-          </Alert>
+        <CardContent>
+          <Button
+            onClick={connectWallet}
+            className="w-full bg-blue-600 hover:bg-blue-700"
+          >
+            Connect Wallet
+          </Button>
         </CardContent>
       </Card>
     );
@@ -238,13 +226,9 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
         <CardTitle className="flex items-center gap-3 text-white">
           <span className="text-2xl">{protocolLogo}</span>
           <div>
-            <div className="text-lg font-bold">Predict {protocolName}</div>
-            <div className="text-sm text-slate-400 font-normal">Next {timeframe}</div>
+            <div className="text-lg">{protocolName} Prediction Market</div>
+            <div className="text-sm text-slate-400 font-normal">Real betting with risk tokens</div>
           </div>
-          <Badge className="ml-auto bg-purple-600 text-white">
-            <Zap className="w-3 h-3 mr-1" />
-            {pricesLoading ? 'Updating...' : 'Live'}
-          </Badge>
         </CardTitle>
       </CardHeader>
 
@@ -272,33 +256,25 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
         {/* Asset Selection */}
         <div>
           <Label className="text-slate-300 mb-2 block">Select Asset</Label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => setAssetType('aUSDC')}
-              className={`p-3 rounded-lg border transition-all ${
-                assetType === 'aUSDC'
-                  ? 'bg-blue-600/20 border-blue-500 text-blue-400'
-                  : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              <div className="text-center">
-                <div className="font-semibold">aUSDC</div>
-                <div className="text-xs opacity-80">Balance: {formatTokenAmount(balances.aUSDC)}</div>
-              </div>
-            </button>
-            <button
-              onClick={() => setAssetType('cUSDT')}
-              className={`p-3 rounded-lg border transition-all ${
-                assetType === 'cUSDT'
-                  ? 'bg-blue-600/20 border-blue-500 text-blue-400'
-                  : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              <div className="text-center">
-                <div className="font-semibold">cUSDT</div>
-                <div className="text-xs opacity-80">Balance: {formatTokenAmount(balances.cUSDT)}</div>
-              </div>
-            </button>
+          <div className={`grid ${supportedAssets.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+            {supportedAssets.map((asset) => (
+              <button
+                key={asset}
+                onClick={() => setAssetType(asset)}
+                className={`p-3 rounded-lg border transition-all ${
+                  assetType === asset
+                    ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                    : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="font-semibold">{asset}</div>
+                  <div className="text-xs opacity-80">
+                    Balance: {formatTokenAmount(balances[asset])}
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -316,7 +292,7 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
               <div className="text-xs text-slate-400 mb-1">Gets Hacked</div>
               <div className="text-red-400 font-bold">{currentOdds.hack.toFixed(2)}x</div>
               <div className="text-xs text-slate-500">
-                {getImpliedProbability(currentOdds.hack)}% chance
+                {getImpliedProbability('hack')}% chance
               </div>
             </div>
           </button>
@@ -333,7 +309,7 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
               <div className="text-xs text-slate-400 mb-1">Stays Safe</div>
               <div className="text-green-400 font-bold">{currentOdds.safe.toFixed(2)}x</div>
               <div className="text-xs text-slate-500">
-                {getImpliedProbability(currentOdds.safe)}% chance
+                {getImpliedProbability('safe')}% chance
               </div>
             </div>
           </button>
@@ -439,7 +415,7 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
           </div>
           <div className="flex items-center gap-1">
             <Target className="w-3 h-3" />
-            <span>Live odds from Uniswap</span>
+            <span>Fixed odds • Real positions</span>
           </div>
         </div>
       </CardContent>

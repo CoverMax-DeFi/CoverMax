@@ -10,24 +10,19 @@ import { Code, Zap, TrendingUp, Users, DollarSign, Target } from 'lucide-react';
 interface ProtocolDemo {
   name: string;
   logo: string;
+  supportedAssets: ('aUSDC' | 'cUSDT')[];
 }
 
 const demoProtocols: ProtocolDemo[] = [
   {
     name: 'Aave',
-    logo: '🏦'
+    logo: '🏦',
+    supportedAssets: ['aUSDC']  // Aave only supports aUSDC
   },
   {
     name: 'Compound',
-    logo: '🏛️'
-  },
-  {
-    name: 'Uniswap V3',
-    logo: '🦄'
-  },
-  {
-    name: 'Yearn Finance',
-    logo: '💰'
+    logo: '🏛️',
+    supportedAssets: ['cUSDT']  // Compound only supports cUSDT
   }
 ];
 
@@ -81,8 +76,9 @@ const WidgetDemo: React.FC = () => {
               protocolName={selectedProtocol.name}
               protocolLogo={selectedProtocol.logo}
               timeframe="7 days"
-              minBet={10}
-              maxPayout={1000}
+              minBet="10"
+              maxPayout="1000"
+              supportedAssets={selectedProtocol.supportedAssets}
             />
           </div>
 
@@ -96,8 +92,8 @@ const WidgetDemo: React.FC = () => {
                   onClick={() => setSelectedProtocol(protocol)}
                   className={`p-4 rounded-lg border-2 transition-all text-left ${
                     selectedProtocol.name === protocol.name
-                      ? 'border-purple-500 bg-purple-500/20'
-                      : 'border-slate-600 bg-slate-700/50 hover:border-purple-400'
+                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      : 'border-slate-600 bg-slate-700/50 hover:border-purple-400 hover:bg-slate-600/50 text-slate-200'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -162,7 +158,7 @@ const WidgetDemo: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowCode(!showCode)}
-                className="text-slate-300 border-slate-600 hover:bg-slate-700"
+                className="text-white bg-slate-600 border-slate-500 hover:bg-slate-500 hover:text-white font-medium"
               >
                 {showCode ? 'Hide Code' : 'Show Code'}
               </Button>
