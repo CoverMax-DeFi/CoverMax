@@ -14,6 +14,7 @@ import {
   Target
 } from 'lucide-react';
 import { useWeb3 } from '@/context/PrivyWeb3Context';
+import { Phase, ContractName, getContractAddress } from '@/config/contracts';
 import { ethers } from 'ethers';
 
 interface PredictionMarketWidgetProps {
@@ -25,12 +26,6 @@ interface PredictionMarketWidgetProps {
   supportedAssets: ('aUSDC' | 'cUSDT')[];
 }
 
-enum Phase {
-  DEPOSIT = 0,
-  ACTIVE = 1,
-  CLAIM = 2,
-  EMERGENCY = 3
-}
 
 const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
   protocolName,
@@ -51,24 +46,81 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
     getTokenBalance,
     refreshData,
     balances,
-    vaultInfo
+    vaultInfo,
+    getPairReserves,
+    currentChain
   } = useWeb3();
 
   const [selectedBet, setSelectedBet] = useState<'hack' | 'safe' | null>(null);
   const [betAmount, setBetAmount] = useState('');
   const [assetType, setAssetType] = useState<'aUSDC' | 'cUSDT'>(supportedAssets[0]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentOdds, setCurrentOdds] = useState({ hack: 1.15, safe: 1.85 });
+  const [currentOdds, setCurrentOdds] = useState({ hack: 1.02, safe: 1.25 });
   const [pricesLoading, setPricesLoading] = useState(false);
+  const [seniorPrice, setSeniorPrice] = useState('1.00');
+  const [juniorPrice, setJuniorPrice] = useState('1.00');
 
-  // Use realistic fixed odds for prediction markets
+  // Fetch token prices and pool reserves from Uniswap pair
   useEffect(() => {
-    // Fixed realistic odds that make sense for prediction markets
+    const fetchTokenPrices = async () => {
+      if (!seniorTokenAddress || !juniorTokenAddress || !getAmountsOut || !currentChain) return;
+
+      setPricesLoading(true);
+      try {
+        // Get pool reserves to calculate proper AMM pricing
+        const pairAddress = getContractAddress(currentChain, ContractName.SENIOR_JUNIOR_PAIR);
+        const reserves = await getPairReserves(pairAddress);
+        const seniorReserve = parseFloat(ethers.formatEther(reserves.reserve0));
+        const juniorReserve = parseFloat(ethers.formatEther(reserves.reserve1));
+
+        // Calculate prices directly from Uniswap AMM reserves
+        // In a Uniswap pair, price = other_reserve / this_reserve
+        const seniorPriceInJunior = juniorReserve / seniorReserve;
+        const juniorPriceInSenior = seniorReserve / juniorReserve;
+
+        // For USD pricing, we need to establish a base.
+        // Let's use getAmountsOut to get actual market prices
+        try {
+          // Get price of 1 SENIOR in terms of JUNIOR
+          const seniorToJuniorPath = [seniorTokenAddress, juniorTokenAddress];
+          const seniorPrice1Unit = await getAmountsOut('1', seniorToJuniorPath);
+
+          // Get price of 1 JUNIOR in terms of SENIOR
+          const juniorToSeniorPath = [juniorTokenAddress, seniorTokenAddress];
+          const juniorPrice1Unit = await getAmountsOut('1', juniorToSeniorPath);
+
+          setSeniorPrice(parseFloat(seniorPrice1Unit).toFixed(2));
+          setJuniorPrice(parseFloat(juniorPrice1Unit).toFixed(2));
+        } catch (error) {
+          console.error('Error getting AMM prices:', error);
+          // Fallback to reserve-based calculation
+          setSeniorPrice(seniorPriceInJunior.toFixed(2));
+          setJuniorPrice(juniorPriceInSenior.toFixed(2));
+        }
+      } catch (error) {
+        console.error('Error fetching token prices:', error);
+        // Keep default prices on error (equal weighting)
+        setSeniorPrice('1.00');
+        setJuniorPrice('1.00');
+      } finally {
+        setPricesLoading(false);
+      }
+    };
+
+    fetchTokenPrices();
+
+    // Refresh prices every 30 seconds
+    const interval = setInterval(fetchTokenPrices, 30000);
+    return () => clearInterval(interval);
+  }, [seniorTokenAddress, juniorTokenAddress, getAmountsOut, getPairReserves, currentChain]);
+
+  // Update odds based on current market prices
+  useEffect(() => {
     setCurrentOdds({
-      hack: 1.15, // 15% return for betting protocol gets hacked (moderate risk)
-      safe: 1.85  // 85% return for betting protocol stays safe (higher risk/reward)
+      hack: 1.02, // Hack scenario: Senior tokens provide modest but safe returns
+      safe: 1.25  // Safe scenario: Junior tokens provide higher risk, higher reward
     });
-  }, []);
+  }, [seniorPrice, juniorPrice]);
 
   const handleBetSelection = (bet: 'hack' | 'safe') => {
     setSelectedBet(bet);
@@ -81,20 +133,20 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
   };
 
   const getImpliedProbability = (betType: 'hack' | 'safe') => {
-    // Calculate actual probabilities from token pool prices
-    const seniorPrice = 1.08; // From your pool data
-    const juniorPrice = 0.92; // From your pool data
-    const totalValue = seniorPrice + juniorPrice; // $2.00
+    // Calculate actual probabilities from real-time token pool prices
+    const seniorPriceNum = parseFloat(seniorPrice);
+    const juniorPriceNum = parseFloat(juniorPrice);
+    const totalValue = seniorPriceNum + juniorPriceNum;
 
     if (betType === 'hack') {
       // Hack bet wins if senior tokens outperform (protocol gets hacked, senior gets paid first)
       // Market probability = senior token weight in pool
-      const hackProbability = (seniorPrice / totalValue) * 100;
+      const hackProbability = (seniorPriceNum / totalValue) * 100;
       return Math.round(hackProbability).toString();
     } else {
       // Safe bet wins if junior tokens outperform (protocol stays safe, junior gets higher yields)
       // Market probability = junior token weight in pool
-      const safeProbability = (juniorPrice / totalValue) * 100;
+      const safeProbability = (juniorPriceNum / totalValue) * 100;
       return Math.round(safeProbability).toString();
     }
   };
@@ -104,25 +156,25 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
 
     const amount = parseFloat(depositAmount);
 
-    // Based on your pool prices
-    const seniorPrice = 1.08; // $1.08 per Senior token
-    const juniorPrice = 0.92; // $0.92 per Junior token
+    // Use real-time pool prices
+    const seniorPriceNum = parseFloat(seniorPrice);
+    const juniorPriceNum = parseFloat(juniorPrice);
 
     // When depositing, user gets 50/50 split initially
     const halfAmount = amount / 2;
 
     if (conversionType === 'toSenior') {
       // For hack bet: Get senior tokens from half deposit, then swap junior->senior
-      const seniorFromDeposit = halfAmount / seniorPrice;
-      const juniorTokens = halfAmount / juniorPrice;
-      const seniorFromSwap = (juniorTokens * juniorPrice) / seniorPrice;
+      const seniorFromDeposit = halfAmount / seniorPriceNum;
+      const juniorTokens = halfAmount / juniorPriceNum;
+      const seniorFromSwap = (juniorTokens * juniorPriceNum) / seniorPriceNum;
       const totalSenior = seniorFromDeposit + seniorFromSwap;
       return totalSenior.toFixed(2);
     } else {
       // For safe bet: Get junior tokens from half deposit, then swap senior->junior
-      const juniorFromDeposit = halfAmount / juniorPrice;
-      const seniorTokens = halfAmount / seniorPrice;
-      const juniorFromSwap = (seniorTokens * seniorPrice) / juniorPrice;
+      const juniorFromDeposit = halfAmount / juniorPriceNum;
+      const seniorTokens = halfAmount / seniorPriceNum;
+      const juniorFromSwap = (seniorTokens * seniorPriceNum) / juniorPriceNum;
       const totalJunior = juniorFromDeposit + juniorFromSwap;
       return totalJunior.toFixed(2);
     }
