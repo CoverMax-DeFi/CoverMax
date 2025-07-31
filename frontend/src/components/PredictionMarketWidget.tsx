@@ -114,12 +114,31 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
     return () => clearInterval(interval);
   }, [seniorTokenAddress, juniorTokenAddress, getAmountsOut, getPairReserves, currentChain]);
 
-  // Update odds based on current market prices
+  // Update odds based on current market prices from the liquidity pool
   useEffect(() => {
-    setCurrentOdds({
-      hack: 1.02, // Hack scenario: Senior tokens provide modest but safe returns
-      safe: 1.25  // Safe scenario: Junior tokens provide higher risk, higher reward
-    });
+    const seniorPriceNum = parseFloat(seniorPrice);
+    const juniorPriceNum = parseFloat(juniorPrice);
+
+    if (seniorPriceNum > 0 && juniorPriceNum > 0) {
+      // In a prediction market, odds should reflect fair payout
+      // If senior token costs $1.08, hack bet should pay 1/1.08 = 0.926x (less than 1x = losing bet)
+      // If junior token costs $0.92, safe bet should pay 1/0.92 = 1.087x (more than 1x = winning bet)
+
+      // The odds are simply the reciprocal of the token price
+      const hackOdds = 1.0 / seniorPriceNum; // What you get back per $1 bet on hack
+      const safeOdds = 1.0 / juniorPriceNum; // What you get back per $1 bet on safe
+
+      setCurrentOdds({
+        hack: hackOdds, // Allow odds below 1.0 (losing bets)
+        safe: safeOdds  // Allow odds below 1.0 (losing bets)
+      });
+    } else {
+      // Fallback to default odds if prices aren't loaded
+      setCurrentOdds({
+        hack: 1.02,
+        safe: 1.25
+      });
+    }
   }, [seniorPrice, juniorPrice]);
 
   const handleBetSelection = (bet: 'hack' | 'safe') => {
@@ -130,6 +149,55 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) return '0.00';
     return (numAmount * odds).toFixed(2);
+  };
+
+  // Calculate cost per share and number of shares with slippage consideration
+  const calculateShareInfo = (betAmount: string, betType: 'hack' | 'safe') => {
+    const amount = parseFloat(betAmount);
+    if (isNaN(amount) || amount <= 0) return {
+      costPerShare: '0.00',
+      numShares: '0.00',
+      totalPayout: '0.00',
+      slippageWarning: false,
+      effectiveCostPerShare: '0.00'
+    };
+
+    // Use real token prices from the liquidity pool
+    const seniorPriceNum = parseFloat(seniorPrice);
+    const juniorPriceNum = parseFloat(juniorPrice);
+
+    let baseCostPerShare: number;
+    if (betType === 'hack') {
+      baseCostPerShare = seniorPriceNum > 0 ? seniorPriceNum : 0.98;
+    } else {
+      baseCostPerShare = juniorPriceNum > 0 ? juniorPriceNum : 0.80;
+    }
+
+    // Estimate slippage impact (simplified model)
+    // Larger trades have more slippage
+    const slippagePercent = Math.min(0.05, (amount / 10000) * 0.02); // Max 5% slippage
+    const slippageMultiplier = 1 + slippagePercent;
+
+    // Effective cost includes slippage
+    const effectiveCostPerShare = baseCostPerShare * slippageMultiplier;
+
+    // Also account for the 5% slippage tolerance used in actual swaps
+    const swapSlippageTolerance = 0.05;
+    const finalEffectiveCost = effectiveCostPerShare * (1 + swapSlippageTolerance);
+
+    const numShares = amount / finalEffectiveCost;
+    const totalPayout = numShares * 1.0;
+
+    const hasSignificantSlippage = slippagePercent > 0.01; // 1% threshold
+
+    return {
+      costPerShare: baseCostPerShare.toFixed(3),
+      effectiveCostPerShare: finalEffectiveCost.toFixed(3),
+      numShares: numShares.toFixed(2),
+      totalPayout: totalPayout.toFixed(2),
+      slippageWarning: hasSignificantSlippage,
+      slippagePercent: (slippagePercent * 100).toFixed(1)
+    };
   };
 
   const getImpliedProbability = (betType: 'hack' | 'safe') => {
@@ -394,27 +462,78 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
           </div>
         </div>
 
-        {/* Strategy Explanation */}
+        {/* Enhanced Cost/Payout Breakdown */}
         {selectedBet && betAmount && parseFloat(betAmount) > 0 && (
-          <div className="bg-slate-700/30 rounded-lg p-3 space-y-2">
-            <div className="text-sm text-slate-300">
-              <strong>Strategy:</strong> {selectedBet === 'hack' ? 'MAX SAFETY' : 'MAX UPSIDE'}
+          <div className="bg-slate-700/30 rounded-lg p-4 space-y-3">
+            <div className="text-sm font-semibold text-white flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              What You Pay, What You Get
             </div>
-            <div className="text-xs text-slate-400">
-              ${betAmount} → {calculateConversionAmount(betAmount, selectedBet === 'hack' ? 'toSenior' : 'toJunior')} {selectedBet === 'hack' ? 'Senior' : 'Junior'} tokens
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-slate-400">Potential Payout:</span>
-              <span className="text-white font-bold">
-                ${calculatePayout(betAmount, selectedBet === 'hack' ? currentOdds.hack : currentOdds.safe)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-slate-400">Profit:</span>
-              <span className={`font-bold ${selectedBet === 'hack' ? 'text-red-400' : 'text-green-400'}`}>
-                ${(parseFloat(calculatePayout(betAmount, selectedBet === 'hack' ? currentOdds.hack : currentOdds.safe)) - parseFloat(betAmount)).toFixed(2)}
-              </span>
-            </div>
+
+            {(() => {
+              const shareInfo = calculateShareInfo(betAmount, selectedBet);
+              return (
+                <div className="space-y-2">
+                  {/* Cost Breakdown */}
+                  <div className="bg-slate-600/30 rounded p-2 space-y-1">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-300">Cost per share:</span>
+                      <span className="text-white font-mono">${shareInfo.costPerShare}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-300">Number of shares:</span>
+                      <span className="text-white font-mono">{shareInfo.numShares}</span>
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      ${betAmount} ÷ ${shareInfo.costPerShare} = {shareInfo.numShares} shares
+                    </div>
+                  </div>
+
+                  {/* Payout Breakdown */}
+                  <div className="bg-slate-600/30 rounded p-2 space-y-1">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-300">If you win:</span>
+                      <span className="text-green-400 font-bold">${shareInfo.totalPayout}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-300">Profit/Loss:</span>
+                      {(() => {
+                        const profit = parseFloat(shareInfo.totalPayout) - parseFloat(betAmount);
+                        const isProfit = profit >= 0;
+                        return (
+                          <span className={`font-bold ${isProfit ? 'text-green-400' : 'text-red-400'}`}>
+                            {isProfit ? '+' : ''}${profit.toFixed(2)}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      {shareInfo.numShares} shares × $1.00 each = ${shareInfo.totalPayout}
+                    </div>
+                  </div>
+
+                  {/* Risk Explanation */}
+                  <div className={`text-xs rounded p-2 ${
+                    parseFloat(shareInfo.costPerShare) > 1.0
+                      ? 'text-red-300 bg-red-900/30'
+                      : 'text-slate-400 bg-slate-800/50'
+                  }`}>
+                    <strong>How it works:</strong> Each share pays $1.00 if your prediction is correct, $0.00 if wrong.
+                    You're buying {shareInfo.numShares} shares at ${shareInfo.costPerShare} each.
+                    {parseFloat(shareInfo.costPerShare) > 1.0 && (
+                      <div className="mt-1 font-semibold">
+                        ⚠️ Warning: You're paying more than $1.00 per share that only pays $1.00 - this bet would lose money even if you win!
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Strategy note */}
+                  <div className="text-xs text-slate-500 border-t border-slate-600 pt-2">
+                    Strategy: {selectedBet === 'hack' ? 'MAX SAFETY (Senior tokens)' : 'MAX UPSIDE (Junior tokens)'}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
