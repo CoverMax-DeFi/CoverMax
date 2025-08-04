@@ -285,10 +285,11 @@ describe("RiskVault - Integration Tests", function () {
       // Trigger phase update first
       await vault.forcePhaseTransition();
 
-      // This should fail because we're no longer in DEPOSIT phase
+      // Deposits should now work even after phase transition (deposits allowed at any time)
+      await ausdc.connect(mixedInvestor).approve(await vault.getAddress(), DEPOSIT_AMOUNT);
       await expect(
         vault.connect(mixedInvestor).depositAsset(await ausdc.getAddress(), DEPOSIT_AMOUNT)
-      ).to.be.revertedWithCustomError(vault, "InvalidPhaseForDeposit");
+      ).to.not.be.reverted;
 
       // But withdrawals should work
       const [senior, junior] = await vault.getUserTokenBalances(seniorInvestor1.address);

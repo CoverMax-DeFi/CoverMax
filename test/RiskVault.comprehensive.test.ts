@@ -294,20 +294,24 @@ describe("RiskVault - Comprehensive Tests", function () {
         ).to.be.revertedWithCustomError(vault, "UnsupportedAsset");
       });
 
-      it("Should revert deposits during non-DEPOSIT phases", async function () {
+      it("Should allow deposits during any phase", async function () {
         // Move to COVERAGE phase
         await vault.forcePhaseTransitionImmediate();
         
+        // Should allow deposit during COVERAGE phase
+        await ausdc.connect(user1).approve(await vault.getAddress(), DEPOSIT_AMOUNT);
         await expect(
           vault.connect(user1).depositAsset(await ausdc.getAddress(), DEPOSIT_AMOUNT)
-        ).to.be.revertedWithCustomError(vault, "InvalidPhaseForDeposit");
+        ).to.not.be.reverted;
         
         // Move to CLAIMS phase
         await vault.forcePhaseTransitionImmediate();
         
+        // Should allow deposit during CLAIMS phase
+        await ausdc.connect(user2).approve(await vault.getAddress(), DEPOSIT_AMOUNT);
         await expect(
-          vault.connect(user1).depositAsset(await ausdc.getAddress(), DEPOSIT_AMOUNT)
-        ).to.be.revertedWithCustomError(vault, "InvalidPhaseForDeposit");
+          vault.connect(user2).depositAsset(await ausdc.getAddress(), DEPOSIT_AMOUNT)
+        ).to.not.be.reverted;
       });
 
       it("Should revert deposits during emergency mode", async function () {
