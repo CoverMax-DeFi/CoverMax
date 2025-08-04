@@ -310,13 +310,12 @@ contract RiskVault is Ownable, ReentrancyGuard {
 
     // Core Vault Functions
     /**
-     * @dev Deposits yield-bearing assets to get CM tokens (only during DEPOSIT phase)
+     * @dev Deposits yield-bearing assets to get CM tokens (can deposit at any time)
      * @param asset The yield-bearing asset to deposit (aUSDC or cUSDT)
      * @param depositAmount Amount of asset to deposit
      */
     function depositAsset(address asset, uint256 depositAmount)
         external
-        onlyDuringPhase(Phase.DEPOSIT)
         whenNotEmergency
         nonReentrant
     {
@@ -344,7 +343,10 @@ contract RiskVault is Ownable, ReentrancyGuard {
 
 
     /**
-     * @dev Withdraws tokens during any phase with specific conditions
+     * @dev Withdraws tokens at any time with phase-specific conditions:
+     * - DEPOSIT/COVERAGE phases: Requires equal senior and junior amounts
+     * - CLAIMS phase (emergency): Only senior tokens allowed
+     * - CLAIMS phase (normal)/FINAL_CLAIMS: Any token combination allowed
      * @param seniorAmount Amount of senior tokens to withdraw
      * @param juniorAmount Amount of junior tokens to withdraw
      * @param preferredAsset Optional: specific asset to withdraw (address(0) for proportional split)
