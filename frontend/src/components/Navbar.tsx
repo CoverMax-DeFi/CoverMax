@@ -40,13 +40,6 @@ const Navbar: React.FC = () => {
             <Button
               variant="ghost"
               asChild
-              className={isActive("/widget-demo") ? "bg-blue-600 hover:bg-blue-700 text-white" : "text-slate-300 hover:text-white hover:bg-slate-800"}
-            >
-              <Link to="/widget-demo">Widget Demo</Link>
-            </Button>
-            <Button
-              variant="ghost"
-              asChild
               className={isActive("/advanced") ? "bg-purple-600 hover:bg-purple-700 text-white" : "text-slate-300 hover:text-white hover:bg-slate-800"}
             >
               <Link to="/advanced">Advanced</Link>
