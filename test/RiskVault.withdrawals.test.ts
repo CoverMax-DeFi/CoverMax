@@ -115,22 +115,21 @@ describe("RiskVault - Withdrawal Tests", function () {
     });
   });
 
-  describe("Withdrawal during COVERAGE Phase", function () {
+  describe("Withdrawal during ACTIVE Phase", function () {
     beforeEach(async function () {
       await vault.connect(user1).depositAsset(await ausdc.getAddress(), DEPOSIT_AMOUNT);
       await vault.connect(user2).depositAsset(await cusdt.getAddress(), DEPOSIT_AMOUNT);
-      // Move to COVERAGE phase
-      await vault.forcePhaseTransitionImmediate();
+      // Stay in ACTIVE phase (no transition needed)
     });
 
-    it("Should allow withdrawal with equal amounts during COVERAGE", async function () {
+    it("Should allow withdrawal with equal amounts during ACTIVE", async function () {
       const [senior, junior] = await vault.getUserTokenBalances(user1.address);
       
       await expect(vault.connect(user1).withdraw(senior, junior, ZeroAddress))
         .to.emit(vault, "TokensWithdrawn");
     });
 
-    it("Should revert withdrawal with unequal amounts during COVERAGE", async function () {
+    it("Should revert withdrawal with unequal amounts during ACTIVE", async function () {
       const [senior, junior] = await vault.getUserTokenBalances(user1.address);
       
       await expect(

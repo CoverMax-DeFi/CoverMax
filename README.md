@@ -33,13 +33,13 @@ Watch CoverMax in action: https://youtu.be/CvOf5WiP0co
 
 ### The Insurance Mechanism
 
-1. **Deposit Phase** (2 days): Users deposit yield-bearing assets (aUSDC, cUSDT) into insurance pools
+1. **Continuous Deposits**: Users can deposit yield-bearing assets (aUSDC, cUSDT) at any time during the protocol lifecycle
 2. **Token Issuance**: For each deposit, users receive equal amounts of:
    - **Senior Risk Tokens** (CM-SENIOR) - Lower risk, priority claims
    - **Junior Risk Tokens** (CM-JUNIOR) - Higher risk, subordinate claims
-3. **Trading Phase**: Risk tokens can be traded on Uniswap like any ERC20 token
-4. **Coverage Phase** (3 days): Active insurance period where claims can be submitted
-5. **Redemption Phase**: Token holders can redeem remaining tokens for underlying assets
+3. **Trading**: Risk tokens can be traded on Uniswap like any ERC20 token throughout all phases
+4. **Active Phase** (5 days): Combined deposit and coverage period where claims can be submitted
+5. **Flexible Redemption**: Token holders can redeem tokens at any time with phase-specific rules
 
 ### The Risk-Insurance Relationship
 
@@ -87,22 +87,26 @@ The core innovation is that **selling risk tokens = providing insurance coverage
 
 ## 🔄 Protocol Lifecycle
 
-### Phase 1: Deposit Period (2 days)
-- Users deposit yield-bearing assets
+### Phase 1: Active Period (5 days)
+- Combined deposit and coverage period for maximum flexibility
+- Users can deposit yield-bearing assets at any time during the protocol lifecycle
+- Active insurance coverage for all deposited assets
 - Dual-tier risk tokens are minted 1:1 with deposits
 - Tokens can be traded immediately on Uniswap
-
-### Phase 2: Coverage Period (5 days)
-- Active insurance coverage for deposited assets
+- Withdrawals require equal amounts of senior and junior tokens
 - Claims can be submitted and processed
 - Risk tokens continue trading on secondary markets
 
-### Phase 3: Senior Claims (1 day)
+### Phase 2: Claims Period (1 day)
 - Priority redemption period for senior token holders
 - Senior tokens have first claim on remaining assets
+- Any combination of senior/junior tokens can be withdrawn (in normal mode)
+- In emergency mode: only senior token withdrawals allowed
+- Deposits continue to be accepted
 
-### Phase 4: Final Claims (1 day)
-- All remaining tokens can be redeemed
+### Phase 3: Final Claims (1 day)
+- All remaining tokens can be redeemed with any combination of senior/junior
+- Deposits continue to be accepted
 - Protocol cycle completes and can restart
 
 ## 💰 Economic Model
@@ -180,7 +184,8 @@ uniswapRouter.swapExactTokensForTokens(
 ### Smart Contract Features
 
 - **Reentrancy Protection**: All external functions protected against reentrancy attacks
-- **Phase-Based Logic**: Automated lifecycle management with time-based phases
+- **Flexible Deposits**: Users can deposit at any time during the protocol lifecycle
+- **Phase-Based Withdrawals**: Withdrawal rules adapt based on current protocol phase
 - **Proportional Redemption**: Fair distribution of assets based on token holdings
 - **Emergency Pause**: Owner can pause protocol in emergencies
 - **Claim Processing**: Structured insurance claim submission and approval system

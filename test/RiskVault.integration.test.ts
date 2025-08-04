@@ -19,8 +19,7 @@ describe("RiskVault - Integration Tests", function () {
   let mixedInvestor: SignerWithAddress;
 
   // Phase durations
-  const DEPOSIT_PHASE_DURATION = 2 * 24 * 60 * 60; // 2 days
-  const COVERAGE_PHASE_DURATION = 3 * 24 * 60 * 60; // 3 days
+  const ACTIVE_PHASE_DURATION = 5 * 24 * 60 * 60; // 5 days (merged deposit + coverage)
   const CLAIMS_PHASE_DURATION = 1 * 24 * 60 * 60; // 1 day
   const FINAL_CLAIMS_DURATION = 1 * 24 * 60 * 60; // 1 day
 
@@ -71,25 +70,17 @@ describe("RiskVault - Integration Tests", function () {
       expect(await vault.getTotalValueLocked()).to.equal(DEPOSIT_AMOUNT * 5n);
       expect(await vault.totalTokensIssued()).to.equal(DEPOSIT_AMOUNT * 5n);
 
-      // Move to COVERAGE phase
-      await time.increase(DEPOSIT_PHASE_DURATION);
-      await vault.forcePhaseTransition();
-
-      // === COVERAGE PHASE ===
-      console.log("=== COVERAGE PHASE ===");
-      expect(await vault.currentPhase()).to.equal(1); // COVERAGE
-
-      // During coverage, some users may want to exit early
+      // During active phase, some users may want to exit early
       const [seniorBal, juniorBal] = await vault.getUserTokenBalances(mixedInvestor.address);
       await vault.connect(mixedInvestor).withdraw(seniorBal / 2n, juniorBal / 2n, ZeroAddress);
 
-      // Simulate coverage period
-      await time.increase(COVERAGE_PHASE_DURATION);
+      // Move to CLAIMS phase after ACTIVE period
+      await time.increase(ACTIVE_PHASE_DURATION);
       await vault.forcePhaseTransition();
 
       // === CLAIMS PHASE ===
       console.log("=== CLAIMS PHASE ===");
-      expect(await vault.currentPhase()).to.equal(2); // CLAIMS
+      expect(await vault.currentPhase()).to.equal(1); // CLAIMS
 
       // In claims phase, users can withdraw any combination
       // Senior investors might withdraw only senior tokens
@@ -106,7 +97,7 @@ describe("RiskVault - Integration Tests", function () {
 
       // === FINAL_CLAIMS PHASE ===
       console.log("=== FINAL_CLAIMS PHASE ===");
-      expect(await vault.currentPhase()).to.equal(3); // FINAL_CLAIMS
+      expect(await vault.currentPhase()).to.equal(2); // FINAL_CLAIMS
 
       // Remaining users withdraw their tokens
       const [senior3Bal, junior3Bal] = await vault.getUserTokenBalances(seniorInvestor2.address);
@@ -274,7 +265,7 @@ describe("RiskVault - Integration Tests", function () {
       await vault.connect(seniorInvestor1).depositAsset(await ausdc.getAddress(), DEPOSIT_AMOUNT);
 
       // Move time to just before transition (1 hour before)
-      await time.increase(DEPOSIT_PHASE_DURATION - 3600);
+      await time.increase(ACTIVE_PHASE_DURATION - 3600);
       
       // Try deposit near end of phase - should still work as we're in DEPOSIT phase
       await vault.connect(juniorInvestor1).depositAsset(await cusdt.getAddress(), DEPOSIT_AMOUNT);

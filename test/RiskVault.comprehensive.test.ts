@@ -17,8 +17,7 @@ describe("RiskVault - Comprehensive Tests", function () {
   let user3: SignerWithAddress;
 
   // Phase durations
-  const DEPOSIT_PHASE_DURATION = 2 * 24 * 60 * 60; // 2 days
-  const COVERAGE_PHASE_DURATION = 3 * 24 * 60 * 60; // 3 days
+  const ACTIVE_PHASE_DURATION = 5 * 24 * 60 * 60; // 5 days (was DEPOSIT + COVERAGE)
   const CLAIMS_PHASE_DURATION = 1 * 24 * 60 * 60; // 1 day
   const FINAL_CLAIMS_DURATION = 1 * 24 * 60 * 60; // 1 day
 
@@ -71,7 +70,7 @@ describe("RiskVault - Comprehensive Tests", function () {
       expect(await vault.owner()).to.equal(owner.address);
       expect(await vault.emergencyMode()).to.equal(false);
       expect(await vault.totalTokensIssued()).to.equal(0);
-      expect(await vault.currentPhase()).to.equal(0); // DEPOSIT phase
+      expect(await vault.currentPhase()).to.equal(0); // ACTIVE phase
     });
 
     it("Should create and own the risk tokens", async function () {
@@ -83,10 +82,10 @@ describe("RiskVault - Comprehensive Tests", function () {
       expect(await juniorToken.symbol()).to.equal("CM-JUNIOR");
     });
 
-    it("Should start in DEPOSIT phase with correct timestamps", async function () {
+    it("Should start in ACTIVE phase with correct timestamps", async function () {
       const phaseInfo = await vault.getPhaseInfo();
       const currentTime = await time.latest();
-      expect(phaseInfo.phase).to.equal(0); // DEPOSIT
+      expect(phaseInfo.phase).to.equal(0); // ACTIVE
       expect(phaseInfo.phaseStart).to.be.closeTo(currentTime, 50);
       expect(phaseInfo.cycleStart).to.be.closeTo(currentTime, 50);
     });
@@ -100,40 +99,35 @@ describe("RiskVault - Comprehensive Tests", function () {
 
   describe("Phase Management", function () {
     describe("Automatic Phase Transitions", function () {
-      it("Should transition from DEPOSIT to COVERAGE after 2 days", async function () {
-        expect(await vault.currentPhase()).to.equal(0); // DEPOSIT
+      it("Should transition from ACTIVE to CLAIMS after 5 days", async function () {
+        expect(await vault.currentPhase()).to.equal(0); // ACTIVE
         
-        // Move time forward by 2 days
-        await time.increase(DEPOSIT_PHASE_DURATION);
+        // Move time forward by 5 days
+        await time.increase(ACTIVE_PHASE_DURATION);
         
         // Trigger phase update manually
         await vault.forcePhaseTransition();
         
-        expect(await vault.currentPhase()).to.equal(1); // COVERAGE
+        expect(await vault.currentPhase()).to.equal(1); // CLAIMS
       });
 
       it("Should transition through all phases with correct timing", async function () {
-        // Start in DEPOSIT
+        // Start in ACTIVE
         expect(await vault.currentPhase()).to.equal(0);
         
-        // Move to COVERAGE
-        await time.increase(DEPOSIT_PHASE_DURATION);
-        await vault.forcePhaseTransition();
-        expect(await vault.currentPhase()).to.equal(1); // COVERAGE
-        
         // Move to CLAIMS
-        await time.increase(COVERAGE_PHASE_DURATION);
+        await time.increase(ACTIVE_PHASE_DURATION);
         await vault.forcePhaseTransition();
-        expect(await vault.currentPhase()).to.equal(2); // CLAIMS
+        expect(await vault.currentPhase()).to.equal(1); // CLAIMS
         
         // Move to FINAL_CLAIMS
         await time.increase(CLAIMS_PHASE_DURATION);
         await vault.forcePhaseTransition();
-        expect(await vault.currentPhase()).to.equal(3); // FINAL_CLAIMS
+        expect(await vault.currentPhase()).to.equal(2); // FINAL_CLAIMS
       });
 
       it("Should emit PhaseTransitioned events", async function () {
-        await time.increase(DEPOSIT_PHASE_DURATION);
+        await time.increase(ACTIVE_PHASE_DURATION);
         await expect(vault.forcePhaseTransition())
           .to.emit(vault, "PhaseTransitioned")
           .withArgs(0, 1, await time.latest() + 1);
@@ -142,16 +136,13 @@ describe("RiskVault - Comprehensive Tests", function () {
 
     describe("Manual Phase Transitions", function () {
       it("Should allow owner to force immediate phase transition", async function () {
-        expect(await vault.currentPhase()).to.equal(0); // DEPOSIT
+        expect(await vault.currentPhase()).to.equal(0); // ACTIVE
         
         await vault.connect(owner).forcePhaseTransitionImmediate();
-        expect(await vault.currentPhase()).to.equal(1); // COVERAGE
+        expect(await vault.currentPhase()).to.equal(1); // CLAIMS
         
         await vault.connect(owner).forcePhaseTransitionImmediate();
-        expect(await vault.currentPhase()).to.equal(2); // CLAIMS
-        
-        await vault.connect(owner).forcePhaseTransitionImmediate();
-        expect(await vault.currentPhase()).to.equal(3); // FINAL_CLAIMS
+        expect(await vault.currentPhase()).to.equal(2); // FINAL_CLAIMS
       });
 
       it("Should only allow owner to force transitions", async function () {
@@ -163,7 +154,6 @@ describe("RiskVault - Comprehensive Tests", function () {
     describe("Cycle Management", function () {
       it("Should start new cycle after FINAL_CLAIMS phase ends", async function () {
         // Move through all phases
-        await vault.forcePhaseTransitionImmediate(); // COVERAGE
         await vault.forcePhaseTransitionImmediate(); // CLAIMS
         await vault.forcePhaseTransitionImmediate(); // FINAL_CLAIMS
         
@@ -174,9 +164,9 @@ describe("RiskVault - Comprehensive Tests", function () {
         await expect(vault.startNewCycle())
           .to.emit(vault, "CycleStarted")
           .to.emit(vault, "PhaseTransitioned")
-          .withArgs(3, 0, await time.latest() + 1);
+          .withArgs(2, 0, await time.latest() + 1);
         
-        expect(await vault.currentPhase()).to.equal(0); // Back to DEPOSIT
+        expect(await vault.currentPhase()).to.equal(0); // Back to ACTIVE
       });
 
       it("Should not allow new cycle if not in FINAL_CLAIMS", async function () {
@@ -185,7 +175,6 @@ describe("RiskVault - Comprehensive Tests", function () {
 
       it("Should not allow new cycle if FINAL_CLAIMS hasn't ended", async function () {
         // Move to FINAL_CLAIMS
-        await vault.forcePhaseTransitionImmediate(); // COVERAGE
         await vault.forcePhaseTransitionImmediate(); // CLAIMS
         await vault.forcePhaseTransitionImmediate(); // FINAL_CLAIMS
         
@@ -201,8 +190,8 @@ describe("RiskVault - Comprehensive Tests", function () {
     describe("Phase Information", function () {
       it("Should return correct phase info", async function () {
         const phaseInfo = await vault.getPhaseInfo();
-        expect(phaseInfo.phase).to.equal(0); // DEPOSIT
-        expect(phaseInfo.timeRemaining).to.be.closeTo(DEPOSIT_PHASE_DURATION, 50);
+        expect(phaseInfo.phase).to.equal(0); // ACTIVE
+        expect(phaseInfo.timeRemaining).to.be.closeTo(ACTIVE_PHASE_DURATION, 50);
       });
 
       it("Should return correct protocol status", async function () {
@@ -211,17 +200,17 @@ describe("RiskVault - Comprehensive Tests", function () {
         expect(status.emergency).to.equal(false);
         expect(status.totalTokens).to.equal(0);
         expect(status.phase).to.equal(0);
-        expect(status.phaseEndTime).to.be.closeTo(currentTime + DEPOSIT_PHASE_DURATION, 50);
+        expect(status.phaseEndTime).to.be.closeTo(currentTime + ACTIVE_PHASE_DURATION, 50);
       });
 
       it("Should update time remaining correctly", async function () {
-        await time.increase(DEPOSIT_PHASE_DURATION / 2);
+        await time.increase(ACTIVE_PHASE_DURATION / 2);
         const phaseInfo = await vault.getPhaseInfo();
-        expect(phaseInfo.timeRemaining).to.be.closeTo(DEPOSIT_PHASE_DURATION / 2, 50);
+        expect(phaseInfo.timeRemaining).to.be.closeTo(ACTIVE_PHASE_DURATION / 2, 50);
       });
 
       it("Should show zero time remaining when phase should transition", async function () {
-        await time.increase(DEPOSIT_PHASE_DURATION + 100);
+        await time.increase(ACTIVE_PHASE_DURATION + 100);
         const phaseInfo = await vault.getPhaseInfo();
         expect(phaseInfo.timeRemaining).to.equal(0);
       });
@@ -230,7 +219,7 @@ describe("RiskVault - Comprehensive Tests", function () {
 
   describe("Deposit Functionality", function () {
     describe("Basic Deposits", function () {
-      it("Should allow deposits during DEPOSIT phase", async function () {
+      it("Should allow deposits during ACTIVE phase", async function () {
         const tx = await vault.connect(user1).depositAsset(await ausdc.getAddress(), DEPOSIT_AMOUNT);
         
         await expect(tx)
@@ -295,19 +284,19 @@ describe("RiskVault - Comprehensive Tests", function () {
       });
 
       it("Should allow deposits during any phase", async function () {
-        // Move to COVERAGE phase
+        // Move to CLAIMS phase
         await vault.forcePhaseTransitionImmediate();
         
-        // Should allow deposit during COVERAGE phase
+        // Should allow deposit during CLAIMS phase
         await ausdc.connect(user1).approve(await vault.getAddress(), DEPOSIT_AMOUNT);
         await expect(
           vault.connect(user1).depositAsset(await ausdc.getAddress(), DEPOSIT_AMOUNT)
         ).to.not.be.reverted;
         
-        // Move to CLAIMS phase
+        // Move to FINAL_CLAIMS phase
         await vault.forcePhaseTransitionImmediate();
         
-        // Should allow deposit during CLAIMS phase
+        // Should allow deposit during FINAL_CLAIMS phase
         await ausdc.connect(user2).approve(await vault.getAddress(), DEPOSIT_AMOUNT);
         await expect(
           vault.connect(user2).depositAsset(await ausdc.getAddress(), DEPOSIT_AMOUNT)

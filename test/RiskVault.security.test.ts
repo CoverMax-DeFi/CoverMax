@@ -228,20 +228,17 @@ describe("RiskVault - Security Tests", function () {
 
     it("Should handle edge cases in phase transitions", async function () {
       // Test rapid successive phase transitions
-      expect(await vault.currentPhase()).to.equal(0); // DEPOSIT
+      expect(await vault.currentPhase()).to.equal(0); // ACTIVE
       
       await vault.forcePhaseTransitionImmediate();
-      expect(await vault.currentPhase()).to.equal(1); // COVERAGE
+      expect(await vault.currentPhase()).to.equal(1); // CLAIMS
       
       await vault.forcePhaseTransitionImmediate();
-      expect(await vault.currentPhase()).to.equal(2); // CLAIMS
-      
-      await vault.forcePhaseTransitionImmediate();
-      expect(await vault.currentPhase()).to.equal(3); // FINAL_CLAIMS
+      expect(await vault.currentPhase()).to.equal(2); // FINAL_CLAIMS
       
       // Can't transition further without starting new cycle
       await vault.forcePhaseTransitionImmediate();
-      expect(await vault.currentPhase()).to.equal(3); // Still FINAL_CLAIMS
+      expect(await vault.currentPhase()).to.equal(2); // Still FINAL_CLAIMS
     });
   });
 

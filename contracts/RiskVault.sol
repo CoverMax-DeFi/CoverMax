@@ -12,10 +12,9 @@ import "./IRiskToken.sol";
 contract RiskVault is Ownable, ReentrancyGuard {
     /* Protocol Phases */
     enum Phase {
-        DEPOSIT,      // Phase 1: Deposit Period (2 days)
-        COVERAGE,       // Phase 2: Active Coverage Period (3 days) 
-        CLAIMS,       // Phase 3: Claims Period (1 day)
-        FINAL_CLAIMS  // Phase 4: Final Claims Period (1 day)
+        ACTIVE,       // Phase 1: Active Period - Deposits and Coverage (5 days)
+        CLAIMS,       // Phase 2: Claims Period (1 day)
+        FINAL_CLAIMS  // Phase 3: Final Claims Period (1 day)
     }
 
     /* Core Protocol Assets */
@@ -26,9 +25,8 @@ contract RiskVault is Ownable, ReentrancyGuard {
 
     /* Protocol Constants */
     uint256 private constant MIN_DEPOSIT_AMOUNT = 10; // Minimum deposit threshold
-    uint256 private constant DEPOSIT_PHASE_DURATION = 2 days;
-    uint256 private constant COVERAGE_PHASE_DURATION = 3 days;
-    uint256 private constant SENIOR_CLAIMS_DURATION = 1 days;
+    uint256 private constant ACTIVE_PHASE_DURATION = 5 days; // Combined deposit + coverage period
+    uint256 private constant CLAIMS_PHASE_DURATION = 1 days;
     uint256 private constant FINAL_CLAIMS_DURATION = 1 days;
 
     /* Protocol State */
@@ -85,13 +83,13 @@ contract RiskVault is Ownable, ReentrancyGuard {
         seniorToken = address(_seniorToken);
         juniorToken = address(_juniorToken);
         
-        // Initialize lifecycle - start in DEPOSIT phase
-        currentPhase = Phase.DEPOSIT;
+        // Initialize lifecycle - start in ACTIVE phase
+        currentPhase = Phase.ACTIVE;
         phaseStartTime = block.timestamp;
         cycleStartTime = block.timestamp;
         
         emit CycleStarted(1, block.timestamp);
-        emit PhaseTransitioned(0, uint8(Phase.DEPOSIT), block.timestamp);
+        emit PhaseTransitioned(0, uint8(Phase.ACTIVE), block.timestamp);
     }
 
     /* Access Control Modifiers */
@@ -103,7 +101,7 @@ contract RiskVault is Ownable, ReentrancyGuard {
     modifier onlyDuringPhase(Phase requiredPhase) {
         _updatePhaseIfNeeded();
         if (currentPhase != requiredPhase) {
-            if (requiredPhase == Phase.DEPOSIT) revert InvalidPhaseForDeposit();
+            if (requiredPhase == Phase.ACTIVE) revert InvalidPhaseForDeposit();
             else revert InvalidPhaseForWithdrawal();
         }
         _;
@@ -125,15 +123,11 @@ contract RiskVault is Ownable, ReentrancyGuard {
         uint256 timeElapsed = block.timestamp - phaseStartTime;
         Phase oldPhase = currentPhase;
         
-        if (currentPhase == Phase.DEPOSIT && timeElapsed >= DEPOSIT_PHASE_DURATION) {
-            currentPhase = Phase.COVERAGE;
-            phaseStartTime = block.timestamp;
-            emit PhaseTransitioned(uint8(oldPhase), uint8(currentPhase), block.timestamp);
-        } else if (currentPhase == Phase.COVERAGE && timeElapsed >= COVERAGE_PHASE_DURATION) {
+        if (currentPhase == Phase.ACTIVE && timeElapsed >= ACTIVE_PHASE_DURATION) {
             currentPhase = Phase.CLAIMS;
             phaseStartTime = block.timestamp;
             emit PhaseTransitioned(uint8(oldPhase), uint8(currentPhase), block.timestamp);
-        } else if (currentPhase == Phase.CLAIMS && timeElapsed >= SENIOR_CLAIMS_DURATION) {
+        } else if (currentPhase == Phase.CLAIMS && timeElapsed >= CLAIMS_PHASE_DURATION) {
             currentPhase = Phase.FINAL_CLAIMS;
             phaseStartTime = block.timestamp;
             emit PhaseTransitioned(uint8(oldPhase), uint8(currentPhase), block.timestamp);
@@ -153,11 +147,7 @@ contract RiskVault is Ownable, ReentrancyGuard {
     function forcePhaseTransitionImmediate() external onlyOwner {
         Phase oldPhase = currentPhase;
         
-        if (currentPhase == Phase.DEPOSIT) {
-            currentPhase = Phase.COVERAGE;
-            phaseStartTime = block.timestamp;
-            emit PhaseTransitioned(uint8(oldPhase), uint8(currentPhase), block.timestamp);
-        } else if (currentPhase == Phase.COVERAGE) {
+        if (currentPhase == Phase.ACTIVE) {
             currentPhase = Phase.CLAIMS;
             phaseStartTime = block.timestamp;
             emit PhaseTransitioned(uint8(oldPhase), uint8(currentPhase), block.timestamp);
@@ -166,7 +156,7 @@ contract RiskVault is Ownable, ReentrancyGuard {
             phaseStartTime = block.timestamp;
             emit PhaseTransitioned(uint8(oldPhase), uint8(currentPhase), block.timestamp);
         }
-        // Note: FINAL_CLAIMS requires startNewCycle() to reset to DEPOSIT
+        // Note: FINAL_CLAIMS requires startNewCycle() to reset to ACTIVE
     }
 
     /**
@@ -181,7 +171,7 @@ contract RiskVault is Ownable, ReentrancyGuard {
         if (timeElapsed < FINAL_CLAIMS_DURATION) revert PhaseTransitionNotReady();
         
         Phase oldPhase = currentPhase;
-        currentPhase = Phase.DEPOSIT;
+        currentPhase = Phase.ACTIVE;
         phaseStartTime = block.timestamp;
         cycleStartTime = block.timestamp;
         
@@ -344,7 +334,7 @@ contract RiskVault is Ownable, ReentrancyGuard {
 
     /**
      * @dev Withdraws tokens at any time with phase-specific conditions:
-     * - DEPOSIT/COVERAGE phases: Requires equal senior and junior amounts
+     * - ACTIVE phase: Requires equal senior and junior amounts
      * - CLAIMS phase (emergency): Only senior tokens allowed
      * - CLAIMS phase (normal)/FINAL_CLAIMS: Any token combination allowed
      * @param seniorAmount Amount of senior tokens to withdraw
@@ -366,13 +356,13 @@ contract RiskVault is Ownable, ReentrancyGuard {
         if (currentPhase == Phase.CLAIMS && emergencyMode) {
             // During senior claims in emergency mode, only senior tokens allowed
             if (juniorAmount > 0) revert OnlySeniorTokensAllowed();
-        } else if (currentPhase != Phase.CLAIMS && currentPhase != Phase.FINAL_CLAIMS) {
-            // During DEPOSIT and COVERAGE phases, require equal amounts
+        } else if (currentPhase == Phase.ACTIVE) {
+            // During ACTIVE phase, require equal amounts
             if (seniorAmount != juniorAmount) {
                 revert EqualAmountsRequired();
             }
         }
-        // During SENIOR_CLAIMS (non-emergency) and FINAL_CLAIMS phases, any combination is allowed
+        // During CLAIMS (non-emergency) and FINAL_CLAIMS phases, any combination is allowed
 
         uint256 aUSDCAmount;
         uint256 cUSDTAmount;
@@ -560,7 +550,7 @@ contract RiskVault is Ownable, ReentrancyGuard {
      * @dev Gets protocol status including current phase
      * @return emergency Whether emergency mode is active
      * @return totalTokens Total CM tokens issued
-     * @return phase Current protocol phase (0=DEPOSIT, 1=COVERAGE, 2=SENIOR_CLAIMS, 3=FINAL_CLAIMS)
+     * @return phase Current protocol phase (0=ACTIVE, 1=CLAIMS, 2=FINAL_CLAIMS)
      * @return phaseEndTime When current phase ends
      */
     function getProtocolStatus() external view returns (
@@ -570,12 +560,10 @@ contract RiskVault is Ownable, ReentrancyGuard {
         uint256 phaseEndTime
     ) {
         uint256 phaseDuration;
-        if (currentPhase == Phase.DEPOSIT) {
-            phaseDuration = DEPOSIT_PHASE_DURATION;
-        } else if (currentPhase == Phase.COVERAGE) {
-            phaseDuration = COVERAGE_PHASE_DURATION;
+        if (currentPhase == Phase.ACTIVE) {
+            phaseDuration = ACTIVE_PHASE_DURATION;
         } else if (currentPhase == Phase.CLAIMS) {
-            phaseDuration = SENIOR_CLAIMS_DURATION;
+            phaseDuration = CLAIMS_PHASE_DURATION;
         } else {
             phaseDuration = FINAL_CLAIMS_DURATION;
         }
@@ -602,12 +590,10 @@ contract RiskVault is Ownable, ReentrancyGuard {
         uint256 timeRemaining
     ) {
         uint256 phaseDuration;
-        if (currentPhase == Phase.DEPOSIT) {
-            phaseDuration = DEPOSIT_PHASE_DURATION;
-        } else if (currentPhase == Phase.COVERAGE) {
-            phaseDuration = COVERAGE_PHASE_DURATION;
+        if (currentPhase == Phase.ACTIVE) {
+            phaseDuration = ACTIVE_PHASE_DURATION;
         } else if (currentPhase == Phase.CLAIMS) {
-            phaseDuration = SENIOR_CLAIMS_DURATION;
+            phaseDuration = CLAIMS_PHASE_DURATION;
         } else {
             phaseDuration = FINAL_CLAIMS_DURATION;
         }
