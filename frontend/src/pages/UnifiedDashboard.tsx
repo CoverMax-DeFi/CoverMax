@@ -40,11 +40,13 @@ const UnifiedDashboard = () => {
     vaultInfo,
     depositAsset,
     withdraw,
+    emergencyWithdraw,
     swapExactTokensForTokens,
     getAmountsOut,
     seniorTokenAddress,
     juniorTokenAddress,
     addLiquidity,
+    removeLiquidity,
     refreshData,
     getPairReserves,
     getTokenBalance,
@@ -68,6 +70,22 @@ const UnifiedDashboard = () => {
     tokenIn: 'senior' | 'junior';
     tokenOut: 'senior' | 'junior';
   } | null>(null);
+
+  // Withdrawal state
+  const [selectedWithdrawAsset, setSelectedWithdrawAsset] = useState<'aUSDC' | 'cUSDT' | null>(null);
+  const [withdrawAssetAmount, setWithdrawAssetAmount] = useState('');
+  const [calculatedTokenAmounts, setCalculatedTokenAmounts] = useState({ senior: '0', junior: '0' });
+  const [effectivePhase, setEffectivePhase] = useState<Phase>(Phase.DEPOSIT);
+
+  // Emergency withdrawal state
+  const [emergencyAmount, setEmergencyAmount] = useState('');
+  const [preferredAsset, setPreferredAsset] = useState<'aUSDC' | 'cUSDT'>('aUSDC');
+
+  // Liquidity management state
+  const [liquiditySeniorAmount, setLiquiditySeniorAmount] = useState('');
+  const [liquidityJuniorAmount, setLiquidityJuniorAmount] = useState('');
+  const [removeLiquidityAmount, setRemoveLiquidityAmount] = useState('');
+  const [liquidityMode, setLiquidityMode] = useState<'manual' | 'optimal'>('optimal');
 
   // Format utilities
   const formatTokenAmount = (amount: bigint) => ethers.formatEther(amount);
@@ -108,6 +126,57 @@ const UnifiedDashboard = () => {
   useEffect(() => {
     setTargetSeniorPercent(Math.round(riskProfile.percentage));
   }, [riskProfile.percentage]);
+
+  // Calculate optimal token amounts when user selects asset and amount
+  useEffect(() => {
+    const calculateOptimalTokens = () => {
+      if (!selectedWithdrawAsset || !withdrawAssetAmount || parseFloat(withdrawAssetAmount) <= 0) {
+        setCalculatedTokenAmounts({ senior: '0', junior: '0' });
+        return;
+      }
+
+      const targetAmount = parseFloat(withdrawAssetAmount);
+      const seniorBalanceNum = seniorBalance;
+      const juniorBalanceNum = juniorBalance;
+
+      let seniorToUse = 0;
+      let juniorToUse = 0;
+
+      // Handle case where phase is not loaded yet - default to DEPOSIT phase logic
+      // Convert bigint to number for comparison
+      const currentPhase = vaultInfo.currentPhase !== undefined ? Number(vaultInfo.currentPhase) : Phase.DEPOSIT;
+      setEffectivePhase(currentPhase);
+
+      if (currentPhase === Phase.DEPOSIT) {
+        // Deposit phase: equal amounts required
+        const requiredPerToken = targetAmount / 2; // Each token contributes half
+        const maxPossible = Math.min(seniorBalanceNum, juniorBalanceNum);
+        const actualPerToken = Math.min(requiredPerToken, maxPossible);
+        seniorToUse = actualPerToken;
+        juniorToUse = actualPerToken;
+      } else if (currentPhase === Phase.CLAIMS) {
+        // Claims phase: senior tokens only
+        seniorToUse = Math.min(targetAmount, seniorBalanceNum);
+        juniorToUse = 0;
+      } else {
+        // Other phases: prefer junior tokens first
+        if (juniorBalanceNum >= targetAmount) {
+          juniorToUse = targetAmount;
+          seniorToUse = 0;
+        } else {
+          juniorToUse = juniorBalanceNum;
+          seniorToUse = Math.min(targetAmount - juniorBalanceNum, seniorBalanceNum);
+        }
+      }
+
+      setCalculatedTokenAmounts({
+        senior: seniorToUse.toFixed(6),
+        junior: juniorToUse.toFixed(6),
+      });
+    };
+
+    calculateOptimalTokens();
+  }, [selectedWithdrawAsset, withdrawAssetAmount, seniorBalance, juniorBalance, vaultInfo.currentPhase]);
 
   // Calculate rebalance preview with actual AMM pricing
   const calculateRebalancePreview = async (targetPercent: number) => {
@@ -178,36 +247,89 @@ const UnifiedDashboard = () => {
     }
   };
 
-  // Fetch prices and reserves
+  // Fetch prices and reserves with enhanced change detection
   useEffect(() => {
-    const fetchPrices = async () => {
+    const fetchTokenPrices = async () => {
       if (!seniorTokenAddress || !juniorTokenAddress || !getAmountsOut || !currentChain) return;
+
+      try {
+        // Get pool reserves to calculate proper AMM pricing
+        const pairAddress = getContractAddress(currentChain, ContractName.SENIOR_JUNIOR_PAIR);
+        const reserves = await getPairReserves(pairAddress);
+        const seniorReserve = parseFloat(ethers.formatEther(reserves.reserve0));
+        const juniorReserve = parseFloat(ethers.formatEther(reserves.reserve1));
+
+        // Calculate prices directly from Uniswap AMM reserves
+        // In a Uniswap pair, price = other_reserve / this_reserve
+        const seniorPriceInJunior = juniorReserve / seniorReserve;
+        const juniorPriceInSenior = seniorReserve / juniorReserve;
+
+        // For USD pricing, we need to establish a base.
+        // Let's use getAmountsOut to get actual market prices
+        try {
+          // Get price of 1 SENIOR in terms of JUNIOR
+          const seniorToJuniorPath = [seniorTokenAddress, juniorTokenAddress];
+          const seniorPrice1Unit = await getAmountsOut('1', seniorToJuniorPath);
+
+          // Get price of 1 JUNIOR in terms of SENIOR
+          const juniorToSeniorPath = [juniorTokenAddress, seniorTokenAddress];
+          const juniorPrice1Unit = await getAmountsOut('1', juniorToSeniorPath);
+
+          setSeniorPrice(parseFloat(seniorPrice1Unit).toFixed(2));
+          setJuniorPrice(parseFloat(juniorPrice1Unit).toFixed(2));
+        } catch (error) {
+          console.error('Error getting AMM prices:', error);
+          // Fallback to reserve-based calculation
+          setSeniorPrice(seniorPriceInJunior.toFixed(2));
+          setJuniorPrice(juniorPriceInSenior.toFixed(2));
+        }
+      } catch (error) {
+        console.error('Error fetching token prices:', error);
+        // Keep default prices on error (equal weighting)
+        setSeniorPrice('1.00');
+        setJuniorPrice('1.00');
+      }
+    };
+
+    const fetchPoolReserves = async () => {
+      if (!getPairReserves || !currentChain) return;
 
       try {
         const pairAddress = getContractAddress(currentChain, ContractName.SENIOR_JUNIOR_PAIR);
         const reserves = await getPairReserves(pairAddress);
 
-        setPoolReserves({
-          senior: ethers.formatEther(reserves.reserve0),
-          junior: ethers.formatEther(reserves.reserve1),
-        });
+        // Format reserves from wei to ether
+        const seniorReserve = ethers.formatEther(reserves.reserve0);
+        const juniorReserve = ethers.formatEther(reserves.reserve1);
 
-        // Get real prices from AMM
-        const seniorToJuniorPath = [seniorTokenAddress, juniorTokenAddress];
-        const juniorToSeniorPath = [juniorTokenAddress, seniorTokenAddress];
+        // Only update if values have changed significantly (avoid micro-updates)
+        const currentSenior = parseFloat(poolReserves.senior);
+        const currentJunior = parseFloat(poolReserves.junior);
+        const newSenior = parseFloat(seniorReserve);
+        const newJunior = parseFloat(juniorReserve);
 
-        const seniorRate = await getAmountsOut('1', seniorToJuniorPath);
-        const juniorRate = await getAmountsOut('1', juniorToSeniorPath);
-
-        setSeniorPrice(parseFloat(juniorRate).toFixed(2));
-        setJuniorPrice(parseFloat(seniorRate).toFixed(2));
+        if (Math.abs(currentSenior - newSenior) > 0.01 || Math.abs(currentJunior - newJunior) > 0.01) {
+          setPoolReserves({
+            senior: seniorReserve,
+            junior: juniorReserve,
+          });
+        }
       } catch (error) {
-        console.error('Error fetching prices:', error);
+        console.error('Error fetching pool reserves:', error);
+        // Only reset if we don't have valid data
+        if (poolReserves.senior === '0' && poolReserves.junior === '0') {
+          setPoolReserves({ senior: '0', junior: '0' });
+        }
       }
     };
 
-    fetchPrices();
-    const interval = setInterval(fetchPrices, 30000);
+    fetchTokenPrices();
+    fetchPoolReserves();
+    const interval = setInterval(() => {
+      fetchTokenPrices();
+      fetchPoolReserves();
+    }, 30000); // Update every 30 seconds to reduce twitching
+
     return () => clearInterval(interval);
   }, [seniorTokenAddress, juniorTokenAddress, getAmountsOut, getPairReserves, currentChain]);
 
@@ -265,6 +387,109 @@ const UnifiedDashboard = () => {
       setTargetSeniorPercent(Math.round(riskProfile.percentage));
     } catch (error) {
       console.error('Rebalancing failed:', error);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  // Optimal withdrawal handler
+  const handleOptimalWithdraw = async () => {
+    if (!selectedWithdrawAsset || !withdrawAssetAmount || parseFloat(withdrawAssetAmount) <= 0) return;
+
+    const { senior, junior } = calculatedTokenAmounts;
+    if (parseFloat(senior) <= 0 && parseFloat(junior) <= 0) return;
+
+    setIsExecuting(true);
+    try {
+      await withdraw(senior, junior);
+      setSelectedWithdrawAsset(null);
+      setWithdrawAssetAmount('');
+      setCalculatedTokenAmounts({ senior: '0', junior: '0' });
+      await refreshData();
+    } catch (error) {
+      console.error('Withdrawal failed:', error);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  // Emergency withdrawal handler
+  const handleEmergencyWithdraw = async () => {
+    if (!emergencyAmount || parseFloat(emergencyAmount) <= 0) return;
+    setIsExecuting(true);
+    try {
+      await emergencyWithdraw(emergencyAmount, preferredAsset);
+      setEmergencyAmount('');
+      await refreshData();
+    } catch (error) {
+      console.error('Emergency withdrawal failed:', error);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  // Liquidity management handlers
+  const handleAddLiquidity = async () => {
+    if (!liquiditySeniorAmount || !liquidityJuniorAmount || !seniorTokenAddress || !juniorTokenAddress) return;
+    if (parseFloat(liquiditySeniorAmount) <= 0 || parseFloat(liquidityJuniorAmount) <= 0) return;
+
+    setIsExecuting(true);
+    try {
+      await addLiquidity(liquiditySeniorAmount, liquidityJuniorAmount, seniorTokenAddress, juniorTokenAddress);
+      setLiquiditySeniorAmount('');
+      setLiquidityJuniorAmount('');
+      await refreshData();
+    } catch (error) {
+      console.error('Add liquidity failed:', error);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  const handleOptimalLiquidity = () => {
+    const seniorBalanceNum = seniorBalance;
+    const juniorBalanceNum = juniorBalance;
+    const poolSenior = parseFloat(poolReserves.senior);
+    const poolJunior = parseFloat(poolReserves.junior);
+
+    if (poolSenior > 0 && poolJunior > 0) {
+      // Calculate optimal amounts based on pool ratio
+      const poolRatio = poolSenior / poolJunior;
+      const userRatio = seniorBalanceNum / juniorBalanceNum;
+
+      let optimalSenior: number, optimalJunior: number;
+
+      if (userRatio > poolRatio) {
+        // User has more senior relative to pool ratio
+        optimalJunior = juniorBalanceNum;
+        optimalSenior = Math.min(optimalJunior * poolRatio, seniorBalanceNum);
+      } else {
+        // User has more junior relative to pool ratio
+        optimalSenior = seniorBalanceNum;
+        optimalJunior = Math.min(optimalSenior / poolRatio, juniorBalanceNum);
+      }
+
+      setLiquiditySeniorAmount(optimalSenior.toFixed(6));
+      setLiquidityJuniorAmount(optimalJunior.toFixed(6));
+    } else {
+      // If no pool reserves, use equal amounts
+      const maxAmount = Math.min(seniorBalanceNum, juniorBalanceNum);
+      setLiquiditySeniorAmount(maxAmount.toFixed(6));
+      setLiquidityJuniorAmount(maxAmount.toFixed(6));
+    }
+  };
+
+  const handleRemoveLiquidity = async () => {
+    if (!removeLiquidityAmount || !seniorTokenAddress || !juniorTokenAddress) return;
+    if (parseFloat(removeLiquidityAmount) <= 0) return;
+
+    setIsExecuting(true);
+    try {
+      await removeLiquidity(removeLiquidityAmount, seniorTokenAddress, juniorTokenAddress);
+      setRemoveLiquidityAmount('');
+      await refreshData();
+    } catch (error) {
+      console.error('Remove liquidity failed:', error);
     } finally {
       setIsExecuting(false);
     }
@@ -556,20 +781,40 @@ const UnifiedDashboard = () => {
                     <Droplets className="w-4 h-4" />
                   </Button>
 
-                  {/* Protocol Status */}
+                  {/* Protocol Analytics */}
                   <div className="pt-4 border-t border-slate-600">
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-slate-300 font-medium">Protocol Status:</span>
-                        <span className="text-white font-semibold">{Phase[vaultInfo.currentPhase] || 'Loading...'}</span>
+                    <div className="mb-3">
+                      <h3 className="text-sm font-semibold text-white mb-2 flex items-center">
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        Protocol Analytics
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="text-center p-3 bg-slate-700/30 rounded-lg">
+                        <p className="text-xs text-slate-300 font-medium">Total TVL</p>
+                        <p className="text-lg font-bold text-green-400">${formatNumber(protocolTVL, 0)}</p>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-300 font-medium">Emergency Mode:</span>
-                        <span className={`font-semibold ${vaultInfo.emergencyMode ? 'text-red-400' : 'text-green-400'}`}>
+                      <div className="text-center p-3 bg-slate-700/30 rounded-lg">
+                        <p className="text-xs text-slate-300 font-medium">Your Share</p>
+                        <p className="text-lg font-bold text-blue-400">{formatNumber(userSharePercent, 4)}%</p>
+                      </div>
+                      <div className="text-center p-3 bg-slate-700/30 rounded-lg">
+                        <p className="text-xs text-slate-300 font-medium">Pool Ratio</p>
+                        <p className="text-lg font-bold text-purple-400">
+                          {parseFloat(poolReserves.junior) > 0
+                            ? formatNumber(parseFloat(poolReserves.senior) / parseFloat(poolReserves.junior), 2)
+                            : '1.00'
+                          }
+                        </p>
+                      </div>
+                      <div className="text-center p-3 bg-slate-700/30 rounded-lg">
+                        <p className="text-xs text-slate-300 font-medium">Emergency</p>
+                        <p className={`text-sm font-bold ${vaultInfo.emergencyMode ? 'text-red-400' : 'text-green-400'}`}>
                           {vaultInfo.emergencyMode ? 'Active' : 'Inactive'}
-                        </span>
+                        </p>
                       </div>
                     </div>
+
                   </div>
                 </CardContent>
               </Card>
@@ -921,40 +1166,108 @@ const UnifiedDashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Withdraw Funds */}
+              {/* Optimal Asset Redemption */}
               <Card className="bg-slate-800/80 border-slate-600 shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center font-semibold">
                     <Minus className="w-5 h-5 mr-2" />
-                    Withdraw Funds
+                    Optimal Asset Redemption
                   </CardTitle>
                   <CardDescription className="text-slate-200">
-                    Convert tokens back to underlying assets
+                    Choose target asset and amount - system calculates optimal token usage
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <Label className="text-slate-200 font-medium">Withdrawal Amount</Label>
-                    <Input
-                      type="number"
-                      placeholder="0.00"
-                      className="bg-slate-700/50 border-slate-600 text-white"
-                    />
-                    <div className="text-sm text-slate-300 font-medium">
-                      Max withdrawable: ${formatNumber(totalPortfolioValue)}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-slate-200 font-medium">Preferred Asset</Label>
+                  {/* Asset Selection */}
+                  <div>
+                    <Label className="text-slate-200 mb-3 block font-medium">Target Asset</Label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Button variant="outline" className="border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700">aUSDC</Button>
-                      <Button variant="outline" className="border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700">cUSDT</Button>
+                      <button
+                        onClick={() => setSelectedWithdrawAsset('aUSDC')}
+                        className={`p-3 rounded-lg border transition-all ${
+                          selectedWithdrawAsset === 'aUSDC'
+                            ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                            : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <div className="font-semibold">aUSDC</div>
+                          <div className="text-sm opacity-80">Aave USDC</div>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => setSelectedWithdrawAsset('cUSDT')}
+                        className={`p-3 rounded-lg border transition-all ${
+                          selectedWithdrawAsset === 'cUSDT'
+                            ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                            : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <div className="font-semibold">cUSDT</div>
+                          <div className="text-sm opacity-80">Compound USDT</div>
+                        </div>
+                      </button>
                     </div>
                   </div>
 
-                  <Button className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white">
-                    Calculate Withdrawal
+                  {/* Amount Input */}
+                  {selectedWithdrawAsset && (
+                    <div>
+                      <Label htmlFor="withdraw-amount" className="text-slate-200 font-medium">
+                        Target Amount ({selectedWithdrawAsset})
+                      </Label>
+                      <Input
+                        id="withdraw-amount"
+                        type="number"
+                        placeholder="0.0"
+                        value={withdrawAssetAmount}
+                        onChange={(e) => setWithdrawAssetAmount(e.target.value)}
+                        disabled={!isConnected}
+                        className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
+                      />
+                      <div className="text-sm text-slate-300 font-medium mt-1">
+                        Max withdrawable: ${formatNumber(totalPortfolioValue)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Automatic Token Allocation Display */}
+                  {selectedWithdrawAsset && withdrawAssetAmount && parseFloat(withdrawAssetAmount) > 0 && (
+                    <Alert className="bg-slate-700/50 border-slate-600 text-slate-300">
+                      <Info className="h-4 w-4" />
+                      <AlertDescription>
+                        <div className="space-y-2">
+                          <div className="font-semibold">Optimal Token Allocation:</div>
+                          <div className="text-sm space-y-1">
+                            <div>Senior Tokens: {calculatedTokenAmounts.senior}</div>
+                            <div>Junior Tokens: {calculatedTokenAmounts.junior}</div>
+                            <div className="text-xs text-slate-400 mt-2">
+                              {effectivePhase === Phase.DEPOSIT
+                                ? 'Deposit phase: Using equal amounts of senior and junior tokens'
+                                : effectivePhase === Phase.CLAIMS
+                                ? 'Claims phase: Using senior tokens only'
+                                : 'Using max junior tokens first, then senior tokens'}
+                            </div>
+                          </div>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Button
+                    onClick={handleOptimalWithdraw}
+                    disabled={!isConnected || !selectedWithdrawAsset || !withdrawAssetAmount || parseFloat(withdrawAssetAmount) <= 0 || isExecuting}
+                    className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white"
+                  >
+                    {isExecuting ? (
+                      <div className="flex items-center">
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Processing...
+                      </div>
+                    ) : (
+                      'Redeem Optimally'
+                    )}
                   </Button>
 
                   <Alert className="bg-yellow-900/30 border-yellow-500">
@@ -971,94 +1284,313 @@ const UnifiedDashboard = () => {
           {/* Advanced Tab */}
           <TabsContent value="advanced" className="space-y-4 md:space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-              {/* Stake Risk Tokens */}
+              {/* Add Liquidity */}
               <Card className="bg-slate-800/80 border-slate-600 shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center font-semibold">
                     <Droplets className="w-5 h-5 mr-2" />
-                    Stake Risk Tokens
+                    Add Liquidity
                   </CardTitle>
                   <CardDescription className="text-slate-200">
-                    Add your Senior/Junior tokens to Uniswap pool to earn trading fees
+                    Provide liquidity to earn trading fees. Choose optimal or manual mode.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="text-center p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-                    <p className="text-sm text-slate-300 mb-1 font-medium">Current Staked Position</p>
-                    <p className="text-xl font-bold text-purple-400">{formatNumber(lpBalance)} LP</p>
-                    <p className="text-xs text-slate-400 font-medium">Earning fees from {formatNumber(seniorBalance)} Senior + {formatNumber(juniorBalance)} Junior</p>
+                  {/* Mode Selection */}
+                  <div>
+                    <Label className="text-slate-200 mb-3 block font-medium">Liquidity Mode</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => setLiquidityMode('optimal')}
+                        className={`p-3 rounded-lg border transition-all ${
+                          liquidityMode === 'optimal'
+                            ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                            : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <div className="font-semibold">Optimal</div>
+                          <div className="text-sm opacity-80">Auto-calculate amounts</div>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => setLiquidityMode('manual')}
+                        className={`p-3 rounded-lg border transition-all ${
+                          liquidityMode === 'manual'
+                            ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                            : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <div className="font-semibold">Manual</div>
+                          <div className="text-sm opacity-80">Set custom amounts</div>
+                        </div>
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-300">Available to Stake:</span>
-                      <span className="text-white font-semibold">{formatNumber(seniorBalance + juniorBalance)} tokens</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-300">Estimated APR:</span>
-                      <span className="text-green-400 font-semibold">12.5%</span>
-                    </div>
-                  </div>
+                  {liquidityMode === 'optimal' ? (
+                    <div className="space-y-4">
+                      {/* Available Tokens Display */}
+                      <div className="p-4 bg-slate-700/30 rounded-lg border border-slate-600">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-white font-medium">Available tokens:</p>
+                            <p className="text-slate-300 text-sm">
+                              {formatNumber(seniorBalance, 4)} SENIOR + {formatNumber(juniorBalance, 4)} JUNIOR
+                            </p>
+                            <p className="text-slate-300 text-xs opacity-80">
+                              Will add optimal amounts to match pool ratio
+                            </p>
+                          </div>
+                        </div>
+                      </div>
 
-                  <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
-                    <Droplets className="w-4 h-4 mr-2" />
-                    Stake Risk Tokens
-                  </Button>
+                      {/* Quick Actions */}
+                      <div className="space-y-3">
+                        <Button
+                          onClick={handleOptimalLiquidity}
+                          disabled={!isConnected || (seniorBalance <= 0 && juniorBalance <= 0)}
+                          className="w-full bg-blue-600/20 border border-blue-500 text-blue-300 hover:bg-blue-600/30"
+                        >
+                          Preview Optimal Amounts
+                        </Button>
 
-                  {lpBalance > 0 && (
-                    <Button variant="outline" className="w-full border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700">
-                      <Minus className="w-4 h-4 mr-2" />
-                      Unstake Tokens
-                    </Button>
+                        {(liquiditySeniorAmount || liquidityJuniorAmount) && (
+                          <Button
+                            onClick={handleAddLiquidity}
+                            disabled={!isConnected || !liquiditySeniorAmount || !liquidityJuniorAmount || isExecuting}
+                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                          >
+                            {isExecuting ? (
+                              <div className="flex items-center">
+                                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                Adding...
+                              </div>
+                            ) : (
+                              <>
+                                <Droplets className="w-4 h-4 mr-2" />
+                                Add Liquidity
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Show calculated amounts */}
+                      {(liquiditySeniorAmount || liquidityJuniorAmount) && (
+                        <Alert className="bg-blue-900/20 border-blue-600 text-blue-300">
+                          <Info className="h-4 w-4" />
+                          <AlertDescription>
+                            <div className="space-y-1">
+                              <div className="font-semibold">Ready to add:</div>
+                              <div className="text-sm">
+                                {liquiditySeniorAmount} SENIOR + {liquidityJuniorAmount} JUNIOR
+                              </div>
+                              <div className="text-xs opacity-80">
+                                These amounts match the current pool ratio for optimal liquidity provision
+                              </div>
+                            </div>
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Manual Input */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-slate-200 font-medium">SENIOR Amount</Label>
+                          <Input
+                            type="number"
+                            placeholder="0.0"
+                            value={liquiditySeniorAmount}
+                            onChange={(e) => setLiquiditySeniorAmount(e.target.value)}
+                            disabled={!isConnected}
+                            className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
+                          />
+                          <p className="text-sm text-slate-400 mt-1">
+                            Balance: {formatNumber(seniorBalance)}
+                          </p>
+                        </div>
+
+                        <div>
+                          <Label className="text-slate-200 font-medium">JUNIOR Amount</Label>
+                          <Input
+                            type="number"
+                            placeholder="0.0"
+                            value={liquidityJuniorAmount}
+                            onChange={(e) => setLiquidityJuniorAmount(e.target.value)}
+                            disabled={!isConnected}
+                            className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
+                          />
+                          <p className="text-sm text-slate-400 mt-1">
+                            Balance: {formatNumber(juniorBalance)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {liquiditySeniorAmount && liquidityJuniorAmount && (
+                        <Alert className="bg-slate-700/50 border-slate-600 text-slate-300">
+                          <Info className="h-4 w-4" />
+                          <AlertDescription>
+                            You'll receive LP tokens proportional to your share of the pool
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
+                      <Button
+                        onClick={handleAddLiquidity}
+                        disabled={!isConnected || !liquiditySeniorAmount || !liquidityJuniorAmount || parseFloat(liquiditySeniorAmount) <= 0 || parseFloat(liquidityJuniorAmount) <= 0 || isExecuting}
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                      >
+                        {isExecuting ? (
+                          <div className="flex items-center">
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            Adding...
+                          </div>
+                        ) : (
+                          'Add Liquidity'
+                        )}
+                      </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Protocol Analytics */}
+              {/* Remove Liquidity */}
               <Card className="bg-slate-800/80 border-slate-600 shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center font-semibold">
-                    <BarChart3 className="w-5 h-5 mr-2" />
-                    Protocol Analytics
+                    <Minus className="w-5 h-5 mr-2" />
+                    Remove Liquidity
                   </CardTitle>
+                  <CardDescription className="text-slate-200">
+                    Remove liquidity from the SENIOR/JUNIOR pool
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
-                    <div>
-                      <p className="text-sm text-slate-300 font-medium">Total TVL</p>
-                      <p className="text-lg font-bold text-green-400">${formatNumber(protocolTVL, 0)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-300 font-medium">Your Share</p>
-                      <p className="text-lg font-bold text-blue-400">{formatNumber(userSharePercent, 4)}%</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-300 font-medium">Pool Ratio</p>
-                      <p className="text-lg font-bold text-purple-400">
-                        {parseFloat(poolReserves.junior) > 0
-                          ? formatNumber(parseFloat(poolReserves.senior) / parseFloat(poolReserves.junior), 2)
-                          : '1.00'
-                        }
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-300 font-medium">Emergency Mode</p>
-                      <p className={`text-lg font-bold ${vaultInfo.emergencyMode ? 'text-red-400' : 'text-green-400'}`}>
-                        {vaultInfo.emergencyMode ? 'Active' : 'Inactive'}
-                      </p>
-                    </div>
+                  <div className="text-center p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
+                    <p className="text-sm text-slate-300 mb-1 font-medium">Current LP Position</p>
+                    <p className="text-xl font-bold text-purple-400">{formatNumber(lpBalance)} LP</p>
+                    <p className="text-xs text-slate-400 font-medium">Pool share tokens</p>
                   </div>
 
+                  <div className="space-y-2">
+                    <Label className="text-slate-200 font-medium">LP Token Amount</Label>
+                    <Input
+                      type="number"
+                      placeholder="0.0"
+                      value={removeLiquidityAmount}
+                      onChange={(e) => setRemoveLiquidityAmount(e.target.value)}
+                      disabled={!isConnected}
+                      className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
+                    />
+                    <p className="text-sm text-slate-400 mt-1">
+                      LP Balance: {formatNumber(lpBalance)}
+                    </p>
+                  </div>
+
+                  {removeLiquidityAmount && parseFloat(removeLiquidityAmount) > 0 && (
+                    <Alert className="bg-slate-700/50 border-slate-600 text-slate-300">
+                      <Info className="h-4 w-4" />
+                      <AlertDescription>
+                        You'll receive proportional amounts of SENIOR and JUNIOR tokens
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <Button
-                    variant="outline"
-                    className="w-full border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"
-                    onClick={() => window.open('https://app.uniswap.org/#/pool', '_blank')}
+                    onClick={handleRemoveLiquidity}
+                    disabled={!isConnected || !removeLiquidityAmount || parseFloat(removeLiquidityAmount) <= 0 || isExecuting}
+                    className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700"
                   >
-                    View on Uniswap
-                    <ExternalLink className="w-4 h-4 ml-2" />
+                    {isExecuting ? (
+                      <div className="flex items-center">
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Removing...
+                      </div>
+                    ) : (
+                      'Remove Liquidity'
+                    )}
                   </Button>
                 </CardContent>
               </Card>
+
+              {/* Emergency Withdrawal */}
+              {vaultInfo.emergencyMode && (
+                <Card className="bg-red-900/20 border-red-700 backdrop-blur-sm lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle className="text-red-400">Emergency Withdrawal</CardTitle>
+                    <CardDescription className="text-red-300">
+                      Emergency mode is active. Senior token holders can withdraw with preferred asset.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="emergency-amount" className="text-slate-300 font-medium">CM-SENIOR Amount</Label>
+                        <Input
+                          id="emergency-amount"
+                          type="number"
+                          placeholder="0.0"
+                          value={emergencyAmount}
+                          onChange={(e) => setEmergencyAmount(e.target.value)}
+                          disabled={!isConnected}
+                          className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-slate-300 mb-3 block font-medium">Preferred Asset</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            onClick={() => setPreferredAsset('aUSDC')}
+                            className={`p-3 rounded-lg border transition-all ${
+                              preferredAsset === 'aUSDC'
+                                ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                                : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700'
+                            }`}
+                          >
+                            <div className="text-center">
+                              <div className="font-semibold">aUSDC</div>
+                              <div className="text-sm opacity-80">Aave USDC</div>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => setPreferredAsset('cUSDT')}
+                            className={`p-3 rounded-lg border transition-all ${
+                              preferredAsset === 'cUSDT'
+                                ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                                : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700'
+                            }`}
+                          >
+                            <div className="text-center">
+                              <div className="font-semibold">cUSDT</div>
+                              <div className="text-sm opacity-80">Compound USDT</div>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={handleEmergencyWithdraw}
+                      disabled={!isConnected || !emergencyAmount || isExecuting}
+                      variant="destructive"
+                      className="w-full bg-red-600 hover:bg-red-700"
+                    >
+                      {isExecuting ? (
+                        <div className="flex items-center">
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </div>
+                      ) : (
+                        'Emergency Withdraw'
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
             </div>
           </TabsContent>
         </Tabs>
@@ -1066,10 +1598,12 @@ const UnifiedDashboard = () => {
         {/* Market Overview - Always Visible at Bottom */}
         <Card className="bg-slate-800/80 border-slate-600 shadow-lg mt-6 md:mt-8">
           <CardHeader>
-            <CardTitle className="text-white flex items-center font-semibold">
-              <Activity className="w-5 h-5 mr-2" />
-              Market Overview
-            </CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-white flex items-center font-semibold">
+                <Activity className="w-5 h-5 mr-2" />
+                Market Overview
+              </CardTitle>tics
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
