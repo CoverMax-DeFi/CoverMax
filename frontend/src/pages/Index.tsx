@@ -4,11 +4,11 @@ import Logo from '@/assets/images/CoverMax.svg';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Shield, 
-  TrendingUp, 
-  Clock, 
-  ArrowRight, 
+import {
+  Shield,
+  TrendingUp,
+  Clock,
+  ArrowRight,
   Zap,
   BarChart3,
   Globe
@@ -68,7 +68,7 @@ const Index = () => {
               <img src={Logo} alt="CoverMax" className="h-8 w-auto" />
               <span className="text-xl font-bold text-white">CoverMax</span>
             </Link>
-            
+
             <div className="flex items-center space-x-6">
 
               <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
@@ -90,7 +90,7 @@ const Index = () => {
               <Globe className="w-4 h-4 mr-2" />
               Live on Blockchain
             </Badge>
-            
+
             <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
               Turn Insurance Risk Into
               <br />
@@ -189,9 +189,9 @@ const Index = () => {
                 <h3 className="text-lg font-semibold text-white mb-2">Deposit</h3>
                 <p className="text-slate-400 text-sm">Put in aUSDC/cUSDT</p>
               </div>
-              
+
               <ArrowRight className="w-8 h-8 text-slate-600 rotate-90 md:rotate-0" />
-              
+
               <div className="text-center">
                 <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white text-xl font-bold mx-auto mb-4">
                   2
@@ -199,9 +199,9 @@ const Index = () => {
                 <h3 className="text-lg font-semibold text-white mb-2">Get Tokens</h3>
                 <p className="text-slate-400 text-sm">Receive senior + junior</p>
               </div>
-              
+
               <ArrowRight className="w-8 h-8 text-slate-600 rotate-90 md:rotate-0" />
-              
+
               <div className="text-center">
                 <div className="w-16 h-16 bg-gradient-to-r from-pink-600 to-red-600 rounded-full flex items-center justify-center text-white text-xl font-bold mx-auto mb-4">
                   3
@@ -210,7 +210,7 @@ const Index = () => {
                 <p className="text-slate-400 text-sm">Buy/sell on Uniswap</p>
               </div>
             </div>
-            
+
             <div className="text-center mt-12">
               <p className="text-lg text-slate-300">
                 <span className="text-blue-400 font-medium">Why?</span> Because now you can buy/sell insurance risk like any other token.
@@ -255,7 +255,7 @@ const Index = () => {
               </p>
             </Card>
           </div>
-          
+
           <div className="text-center mt-8">
             <p className="text-slate-400">
               Both types are tradeable on Uniswap • Adjust your risk anytime
@@ -278,7 +278,7 @@ const Index = () => {
             <p className="text-slate-300 text-lg mb-8 max-w-2xl mx-auto">
               Turn your DeFi assets into tradeable risk tokens.
             </p>
-            
+
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-6">
@@ -290,6 +290,37 @@ const Index = () => {
             </div>
             </div>
           </Card>
+        </div>
+      </section>
+
+      {/* Partners Section */}
+      <section className="relative z-10 py-20 bg-slate-800/30">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Our Partners
+            </h2>
+            <p className="text-slate-300 text-lg">
+              Backed by leading organizations in the blockchain ecosystem
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-12 max-w-5xl mx-auto">
+            <div className="flex items-center justify-center">
+              <img
+                src="/New_CBT_Standalone.png"
+                alt="CBT Partner"
+                className="h-20 md:h-24 w-auto object-contain filter brightness-0 invert opacity-80 hover:opacity-100 transition-opacity"
+              />
+            </div>
+            <div className="flex items-center justify-center">
+              <img
+                src="/UCLIE_logo_black.png"
+                alt="UCLIE Partner"
+                className="h-20 md:h-24 w-auto object-contain filter brightness-0 invert opacity-80 hover:opacity-100 transition-opacity"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -307,7 +338,7 @@ const Index = () => {
                 Built for the future of protected finance.
               </p>
             </div>
-            
+
             <div>
               <h4 className="font-semibold text-white mb-4">Protocol</h4>
               <div className="space-y-2">
@@ -316,7 +347,7 @@ const Index = () => {
                 <Link to="/admin" className="block text-slate-400 hover:text-white transition-colors">Analytics</Link>
               </div>
             </div>
-            
+
             <div>
               <h4 className="font-semibold text-white mb-4">Resources</h4>
               <div className="space-y-2">
@@ -326,7 +357,7 @@ const Index = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="border-t border-slate-700/50 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
             <p className="text-slate-400 mb-4 md:mb-0">
               © {new Date().getFullYear()} CoverMax Protocol. Decentralized and open source.
