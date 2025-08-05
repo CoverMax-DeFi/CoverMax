@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Insurance from "./pages/Insurance";
 import Advanced from "./pages/Advanced";
 import Admin from "./pages/Admin";
+import WidgetDemo from "./pages/WidgetDemo";
 import NotFound from "./pages/NotFound";
 
 const AppProviders: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => (
@@ -32,6 +33,7 @@ const App: React.FC = () => {
           <Route path="/insurance" element={<Insurance />} />
           <Route path="/advanced" element={<Advanced />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/widget-demo" element={<WidgetDemo />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

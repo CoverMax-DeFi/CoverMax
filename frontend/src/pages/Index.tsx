@@ -70,6 +70,23 @@ const Index = () => {
             </Link>
 
             <div className="flex items-center space-x-6">
+              <Button
+                variant="ghost"
+                asChild
+                className="text-slate-300 hover:text-white hover:bg-slate-800"
+              >
+                <Link to="/widget-demo">Widget Demo</Link>
+              </Button>
+
+              <Button
+                variant="ghost"
+                asChild
+                className="text-slate-300 hover:text-white hover:bg-slate-800"
+              >
+                <a href="https://covermax.gitbook.io/covermax" target="_blank" rel="noopener noreferrer">
+                  Docs
+                </a>
+              </Button>
 
               <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                 <Link to="/dashboard">

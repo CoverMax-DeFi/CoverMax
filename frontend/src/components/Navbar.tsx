@@ -11,7 +11,7 @@ const Navbar: React.FC = () => {
 
   // Helper function to determine if a route is active
   const isActive = (path: string) => location.pathname === path;
-  
+
   // Format address for display
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
