@@ -238,23 +238,20 @@ export function getChainDeploymentStatus(chainId: SupportedChainId): Record<Cont
 
 // Phase enum matching the smart contract
 export enum Phase {
-  DEPOSIT = 0,
-  COVERAGE = 1,
-  CLAIMS = 2,
-  FINAL_CLAIMS = 3,
+  ACTIVE = 0,
+  CLAIMS = 1,
+  FINAL_CLAIMS = 2,
 }
 
 export const PHASE_NAMES = {
-  [Phase.DEPOSIT]: "Deposit Period",
-  [Phase.COVERAGE]: "Coverage Period", 
+  [Phase.ACTIVE]: "Active Period",
   [Phase.CLAIMS]: "Claims Period",
   [Phase.FINAL_CLAIMS]: "Final Claims Period",
 } as const;
 
 // Phase durations in seconds (matching smart contract)
 export const PHASE_DURATIONS = {
-  [Phase.DEPOSIT]: 2 * 24 * 60 * 60, // 2 days
-  [Phase.COVERAGE]: 3 * 24 * 60 * 60, // 3 days
+  [Phase.ACTIVE]: 5 * 24 * 60 * 60, // 5 days
   [Phase.CLAIMS]: 1 * 24 * 60 * 60, // 1 day
   [Phase.FINAL_CLAIMS]: 1 * 24 * 60 * 60, // 1 day
 } as const;

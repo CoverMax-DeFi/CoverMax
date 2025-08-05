@@ -116,10 +116,10 @@ const Index = () => {
               </span>
             </h1>
             <p className="text-lg text-blue-300 mb-4 font-semibold">
-              For safety-first users and high-upside seekers—choose your risk, earn your yield.
+              Deposit anytime. Withdraw anytime. Trade your risk on Uniswap.
             </p>
             <p className="text-xl text-slate-300 mb-8 leading-relaxed max-w-2xl mx-auto">
-              Deposit your assets → Get risk tokens → Trade them on Uniswap.
+              Coverage in one seamless experience.
               <br />
               <span className="text-blue-400 font-medium">Senior tokens = safety first. Junior tokens = higher upside.</span>
             </p>
@@ -170,7 +170,7 @@ const Index = () => {
               <div>
                 <div className="text-xl font-bold text-blue-300">For Safety-First Users</div>
                 <div className="text-slate-300 text-base">
-                  <span className="text-blue-400 font-medium">Benefit:</span> Deposit yield tokens, sell of your risk tokens to get "insured-yield", and withdraw from unharmed with priority during emergencies.
+                  <span className="text-blue-400 font-medium">Benefit:</span> Deposit yield tokens anytime, sell your risk tokens to get "insured-yield", and withdraw with priority during emergencies.
                 </div>
               </div>
             </Card>
@@ -179,7 +179,7 @@ const Index = () => {
               <div>
                 <div className="text-xl font-bold text-amber-300">For High-Upside Seekers</div>
                 <div className="text-slate-300 text-base">
-                  <span className="text-amber-400 font-medium">Benefit:</span> Deposit yield tokens, arbitrage the risk tokens, and manage the Junior Tokens for higher yield still with flexible risk exposure.<br />
+                  <span className="text-amber-400 font-medium">Benefit:</span> Deposit yield tokens anytime, arbitrage risk tokens, and manage Junior Tokens for higher yield with flexible risk exposure.
 
                 </div>
               </div>

@@ -294,15 +294,13 @@ const QuickTrade: React.FC = () => {
             </div>
           </div>
 
-          {/* Deposit Phase Check */}
-          {Number(vaultInfo.currentPhase) !== Phase.DEPOSIT && (
-            <Alert className="bg-slate-700/50 border-slate-600 text-slate-300">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Deposits are only allowed during the Deposit phase. Current phase: {vaultInfo.currentPhase !== undefined ? Phase[vaultInfo.currentPhase] : 'Loading...'}
-              </AlertDescription>
-            </Alert>
-          )}
+          {/* Phase Info */}
+          <Alert className="bg-slate-700/50 border-slate-600 text-slate-300">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Current phase: {vaultInfo.currentPhase !== undefined ? Phase[vaultInfo.currentPhase] : 'Loading...'}. Deposits and withdrawals allowed at any time.
+            </AlertDescription>
+          </Alert>
 
           {/* Deposit Action Buttons */}
           <div>
@@ -310,7 +308,7 @@ const QuickTrade: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Button 
                 onClick={() => handleDepositAndTrade('fullCoverage')}
-                disabled={!isConnected || !depositAmount || parseFloat(depositAmount) <= 0 || isExecuting || Number(vaultInfo.currentPhase) !== Phase.DEPOSIT}
+                disabled={!isConnected || !depositAmount || parseFloat(depositAmount) <= 0 || isExecuting}
                 className="h-24 text-lg font-medium bg-slate-700 hover:bg-slate-600 transition-all duration-200 border border-slate-600"
               >
                 <div className="flex flex-col items-center space-y-1">
@@ -327,7 +325,7 @@ const QuickTrade: React.FC = () => {
 
               <Button 
                 onClick={() => handleDepositAndTrade('fullRisk')}
-                disabled={!isConnected || !depositAmount || parseFloat(depositAmount) <= 0 || isExecuting || Number(vaultInfo.currentPhase) !== Phase.DEPOSIT}
+                disabled={!isConnected || !depositAmount || parseFloat(depositAmount) <= 0 || isExecuting}
                 className="h-24 text-lg font-medium bg-slate-700 hover:bg-slate-600 transition-all duration-200 border border-slate-600"
               >
                 <div className="flex flex-col items-center space-y-1">
@@ -344,7 +342,7 @@ const QuickTrade: React.FC = () => {
 
               <Button 
                 onClick={() => handleDepositAndTrade('balanced')}
-                disabled={!isConnected || !depositAmount || parseFloat(depositAmount) <= 0 || isExecuting || Number(vaultInfo.currentPhase) !== Phase.DEPOSIT}
+                disabled={!isConnected || !depositAmount || parseFloat(depositAmount) <= 0 || isExecuting}
                 className="h-24 text-lg font-medium bg-slate-700 hover:bg-slate-600 transition-all duration-200 border border-slate-600"
               >
                 <div className="flex flex-col items-center space-y-1">

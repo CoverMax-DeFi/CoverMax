@@ -35,8 +35,7 @@ const PhaseDisplay: React.FC = () => {
 
       // Calculate progress based on phase duration
       const phaseDurations: { [key: number]: number } = {
-        [Phase.DEPOSIT]: 2 * 24 * 60 * 60,
-        [Phase.COVERAGE]: 3 * 24 * 60 * 60,
+        [Phase.ACTIVE]: 5 * 24 * 60 * 60,
         [Phase.CLAIMS]: 1 * 24 * 60 * 60,
         [Phase.FINAL_CLAIMS]: 1 * 24 * 60 * 60,
       };
@@ -53,9 +52,7 @@ const PhaseDisplay: React.FC = () => {
 
   const getPhaseIcon = () => {
     switch (vaultInfo.currentPhase) {
-      case Phase.DEPOSIT:
-        return <FileText className="h-5 w-5" />;
-      case Phase.COVERAGE:
+      case Phase.ACTIVE:
         return <Shield className="h-5 w-5" />;
       case Phase.CLAIMS:
       case Phase.FINAL_CLAIMS:
@@ -67,9 +64,7 @@ const PhaseDisplay: React.FC = () => {
 
   const getPhaseColor = () => {
     switch (vaultInfo.currentPhase) {
-      case Phase.DEPOSIT:
-        return 'bg-green-500';
-      case Phase.COVERAGE:
+      case Phase.ACTIVE:
         return 'bg-blue-500';
       case Phase.CLAIMS:
         return 'bg-orange-500';
@@ -82,14 +77,12 @@ const PhaseDisplay: React.FC = () => {
 
   const getPhaseDescription = () => {
     switch (vaultInfo.currentPhase) {
-      case Phase.DEPOSIT:
-        return 'Users can deposit aUSDC or cUSDT to receive CM-SENIOR and CM-JUNIOR tokens';
-      case Phase.COVERAGE:
-        return 'Coverage is active. Tokens are locked and earning yield';
+      case Phase.ACTIVE:
+        return 'Deposits and withdrawals allowed. Coverage is active. Equal senior/junior amounts required for withdrawals';
       case Phase.CLAIMS:
-        return 'Senior token holders can withdraw their funds';
+        return 'Any combination of senior and junior tokens can be withdrawn. Emergency mode restricts to senior only';
       case Phase.FINAL_CLAIMS:
-        return 'All token holders can withdraw remaining funds';
+        return 'All token holders can withdraw remaining funds with any token combination';
       default:
         return '';
     }
