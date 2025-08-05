@@ -10,17 +10,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Slider } from '@/components/ui/slider';
-import { 
-  Shield, 
-  TrendingUp, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  DollarSign, 
-  Zap, 
-  Activity, 
-  Clock, 
-  AlertCircle, 
-  Info, 
+import {
+  Shield,
+  TrendingUp,
+  ArrowUpRight,
+  ArrowDownRight,
+  DollarSign,
+  Zap,
+  Activity,
+  Clock,
+  AlertCircle,
+  Info,
   RefreshCw,
   Droplets,
   BarChart3,
@@ -57,7 +57,7 @@ const UnifiedDashboard = () => {
   } = useWeb3();
 
   // State Management
-  const [activeStrategy, setActiveStrategy] = useState<'safety' | 'upside' | 'balanced' | 'custom'>('balanced');
+  const [activeStrategy, setActiveStrategy] = useState<'safety' | 'upside' | 'balanced'>('balanced');
   const [amount, setAmount] = useState('');
   const [selectedAsset, setSelectedAsset] = useState<'aUSDC' | 'cUSDT'>('aUSDC');
   const [isExecuting, setIsExecuting] = useState(false);
@@ -67,6 +67,12 @@ const UnifiedDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [targetSeniorPercent, setTargetSeniorPercent] = useState(50);
   const [isRebalancePreview, setIsRebalancePreview] = useState(false);
+  const [rebalancePreview, setRebalancePreview] = useState<{
+    amountIn: string;
+    amountOut: string;
+    tokenIn: 'senior' | 'junior';
+    tokenOut: 'senior' | 'junior';
+  } | null>(null);
 
   // Format utilities
   const formatTokenAmount = (amount: bigint) => ethers.formatEther(amount);
@@ -78,13 +84,13 @@ const UnifiedDashboard = () => {
   const aUSDCBalance = Number(formatTokenAmount(balances.aUSDC));
   const cUSDTBalance = Number(formatTokenAmount(balances.cUSDT));
   const lpBalance = Number(formatTokenAmount(balances.lpTokens));
-  
-  const totalPortfolioValue = 
-    (seniorBalance * parseFloat(seniorPrice)) + 
+
+  const totalPortfolioValue =
+    (seniorBalance * parseFloat(seniorPrice)) +
     (juniorBalance * parseFloat(juniorPrice));
-  
+
   const protocolTVL = (Number(vaultInfo.aUSDCBalance) + Number(vaultInfo.cUSDTBalance)) / 1e18;
-  const userSharePercent = vaultInfo.totalTokensIssued > 0n 
+  const userSharePercent = vaultInfo.totalTokensIssued > 0n
     ? ((seniorBalance + juniorBalance) / (Number(vaultInfo.totalTokensIssued) / 1e18) * 100)
     : 0;
 
@@ -92,7 +98,7 @@ const UnifiedDashboard = () => {
   const getRiskProfile = () => {
     const totalTokens = seniorBalance + juniorBalance;
     if (totalTokens === 0) return { level: 'None', color: 'slate', percentage: 0 };
-    
+
     const seniorRatio = seniorBalance / totalTokens;
     if (seniorRatio >= 0.8) return { level: 'Conservative', color: 'blue', percentage: seniorRatio * 100 };
     if (seniorRatio >= 0.6) return { level: 'Moderate', color: 'purple', percentage: seniorRatio * 100 };
@@ -108,15 +114,84 @@ const UnifiedDashboard = () => {
     setTargetSeniorPercent(Math.round(riskProfile.percentage));
   }, [riskProfile.percentage]);
 
+  // Calculate rebalance preview with actual AMM pricing
+  const calculateRebalancePreview = async (targetPercent: number) => {
+    if (!seniorTokenAddress || !juniorTokenAddress || !getAmountsOut) return;
+
+    const currentSeniorPercent = riskProfile.percentage;
+    const percentDiff = targetPercent - currentSeniorPercent;
+
+    if (Math.abs(percentDiff) < 1) {
+      setRebalancePreview(null);
+      return;
+    }
+
+    try {
+      let amountIn: string;
+      let path: string[];
+      let tokenIn: 'senior' | 'junior';
+      let tokenOut: 'senior' | 'junior';
+
+      if (targetPercent === 100) {
+        // Swap ALL Junior tokens to Senior
+        amountIn = juniorBalance.toFixed(18);
+        path = [juniorTokenAddress, seniorTokenAddress];
+        tokenIn = 'junior';
+        tokenOut = 'senior';
+      } else if (targetPercent === 0) {
+        // Swap ALL Senior tokens to Junior
+        amountIn = seniorBalance.toFixed(18);
+        path = [seniorTokenAddress, juniorTokenAddress];
+        tokenIn = 'senior';
+        tokenOut = 'junior';
+      } else if (percentDiff > 0) {
+        // Need more Senior tokens - calculate Junior to swap based on target percentage
+        const totalTokens = seniorBalance + juniorBalance;
+        const targetSeniorAmount = (totalTokens * targetPercent) / 100;
+        const seniorNeeded = targetSeniorAmount - seniorBalance;
+        const juniorToSwap = Math.min(seniorNeeded / parseFloat(juniorPrice), juniorBalance);
+        
+        amountIn = juniorToSwap.toFixed(18);
+        path = [juniorTokenAddress, seniorTokenAddress];
+        tokenIn = 'junior';
+        tokenOut = 'senior';
+      } else {
+        // Need more Junior tokens - calculate Senior to swap based on target percentage
+        const totalTokens = seniorBalance + juniorBalance;
+        const targetJuniorAmount = (totalTokens * (100 - targetPercent)) / 100;
+        const juniorNeeded = targetJuniorAmount - juniorBalance;
+        const seniorToSwap = Math.min(juniorNeeded * parseFloat(juniorPrice), seniorBalance);
+        
+        amountIn = seniorToSwap.toFixed(18);
+        path = [seniorTokenAddress, juniorTokenAddress];
+        tokenIn = 'senior';
+        tokenOut = 'junior';
+      }
+
+      if (parseFloat(amountIn) > 0) {
+        const amountOut = await getAmountsOut(amountIn, path);
+        setRebalancePreview({
+          amountIn: parseFloat(amountIn).toFixed(4),
+          amountOut: parseFloat(amountOut).toFixed(4),
+          tokenIn,
+          tokenOut
+        });
+      }
+    } catch (error) {
+      console.error('Error calculating rebalance preview:', error);
+      setRebalancePreview(null);
+    }
+  };
+
   // Fetch prices and reserves
   useEffect(() => {
     const fetchPrices = async () => {
       if (!seniorTokenAddress || !juniorTokenAddress || !getAmountsOut || !currentChain) return;
-      
+
       try {
         const pairAddress = getContractAddress(currentChain, ContractName.SENIOR_JUNIOR_PAIR);
         const reserves = await getPairReserves(pairAddress);
-        
+
         setPoolReserves({
           senior: ethers.formatEther(reserves.reserve0),
           junior: ethers.formatEther(reserves.reserve1),
@@ -125,10 +200,10 @@ const UnifiedDashboard = () => {
         // Get real prices from AMM
         const seniorToJuniorPath = [seniorTokenAddress, juniorTokenAddress];
         const juniorToSeniorPath = [juniorTokenAddress, seniorTokenAddress];
-        
+
         const seniorRate = await getAmountsOut('1', seniorToJuniorPath);
         const juniorRate = await getAmountsOut('1', juniorToSeniorPath);
-        
+
         setSeniorPrice(parseFloat(juniorRate).toFixed(2));
         setJuniorPrice(parseFloat(seniorRate).toFixed(2));
       } catch (error) {
@@ -141,15 +216,74 @@ const UnifiedDashboard = () => {
     return () => clearInterval(interval);
   }, [seniorTokenAddress, juniorTokenAddress, getAmountsOut, getPairReserves, currentChain]);
 
+  // Execute rebalancing
+  const executeRebalance = async () => {
+    if (!seniorTokenAddress || !juniorTokenAddress || !swapExactTokensForTokens || !getAmountsOut) return;
+
+    const currentSeniorPercent = riskProfile.percentage;
+    const targetPercent = targetSeniorPercent;
+    const percentDiff = targetPercent - currentSeniorPercent;
+
+    if (Math.abs(percentDiff) < 1) return; // No significant change
+
+    setIsExecuting(true);
+    try {
+      let amountIn: string;
+      let path: string[];
+
+      if (targetPercent === 100) {
+        // Swap ALL Junior tokens to Senior
+        amountIn = juniorBalance.toFixed(18);
+        path = [juniorTokenAddress, seniorTokenAddress];
+      } else if (targetPercent === 0) {
+        // Swap ALL Senior tokens to Junior
+        amountIn = seniorBalance.toFixed(18);
+        path = [seniorTokenAddress, juniorTokenAddress];
+      } else if (percentDiff > 0) {
+        // Need more Senior tokens - calculate Junior to swap based on target percentage
+        const totalTokens = seniorBalance + juniorBalance;
+        const targetSeniorAmount = (totalTokens * targetPercent) / 100;
+        const seniorNeeded = targetSeniorAmount - seniorBalance;
+        const juniorToSwap = Math.min(seniorNeeded / parseFloat(juniorPrice), juniorBalance);
+        
+        amountIn = juniorToSwap.toFixed(18);
+        path = [juniorTokenAddress, seniorTokenAddress];
+      } else {
+        // Need more Junior tokens - calculate Senior to swap based on target percentage
+        const totalTokens = seniorBalance + juniorBalance;
+        const targetJuniorAmount = (totalTokens * (100 - targetPercent)) / 100;
+        const juniorNeeded = targetJuniorAmount - juniorBalance;
+        const seniorToSwap = Math.min(juniorNeeded * parseFloat(juniorPrice), seniorBalance);
+        
+        amountIn = seniorToSwap.toFixed(18);
+        path = [seniorTokenAddress, juniorTokenAddress];
+      }
+
+      if (parseFloat(amountIn) > 0) {
+        const amountsOut = await getAmountsOut(amountIn, path);
+        const minAmountOut = (parseFloat(amountsOut) * 0.95).toFixed(18); // 5% slippage
+        await swapExactTokensForTokens(amountIn, minAmountOut, path);
+      }
+
+      await refreshData();
+      setIsRebalancePreview(false);
+      setTargetSeniorPercent(Math.round(riskProfile.percentage));
+    } catch (error) {
+      console.error('Rebalancing failed:', error);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
   // Strategy execution
   const executeStrategy = async (strategy: 'safety' | 'upside' | 'balanced') => {
     if (!amount || parseFloat(amount) <= 0) return;
-    
+
     setIsExecuting(true);
     try {
       // First deposit to get tokens
       await depositAsset(selectedAsset, amount);
-      
+
       if (strategy === 'safety') {
         // Convert all junior to senior
         const freshJuniorBalance = await getTokenBalance(juniorTokenAddress!);
@@ -172,7 +306,7 @@ const UnifiedDashboard = () => {
         }
       }
       // For balanced, keep 50/50 split from deposit
-      
+
       setAmount('');
       await refreshData();
     } catch (error) {
@@ -209,9 +343,9 @@ const UnifiedDashboard = () => {
         <div className="absolute top-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
         <div className="absolute bottom-40 right-20 w-60 h-60 bg-green-500/10 rounded-full blur-3xl animate-pulse delay-2000"></div>
       </div>
-      
+
       <Navbar />
-      
+
       <div className="relative z-10 container mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -223,8 +357,8 @@ const UnifiedDashboard = () => {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              <Badge 
-                variant="outline" 
+              <Badge
+                variant="outline"
                 className={`border-${riskProfile.color}-500 text-${riskProfile.color}-400`}
               >
                 {riskProfile.level} Risk Profile
@@ -331,8 +465,8 @@ const UnifiedDashboard = () => {
                         {formatNumber(riskProfile.percentage)}% Senior
                       </span>
                     </div>
-                    <Progress 
-                      value={riskProfile.percentage} 
+                    <Progress
+                      value={riskProfile.percentage}
                       className="h-3"
                     />
                     <div className="flex justify-between text-xs text-slate-400 font-medium">
@@ -399,16 +533,16 @@ const UnifiedDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Button 
+                  <Button
                     className="w-full justify-between bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                     onClick={() => setActiveTab('deposit')}
                   >
                     Deposit & Get Tokens
                     <Plus className="w-4 h-4" />
                   </Button>
-                  
-                  <Button 
-                    variant="outline" 
+
+                  <Button
+                    variant="outline"
                     className="w-full justify-between border-slate-600 bg-slate-800/50 text-slate-300 hover:bg-slate-700 hover:text-white"
                     onClick={() => setActiveTab('manage')}
                   >
@@ -416,8 +550,8 @@ const UnifiedDashboard = () => {
                     <Settings className="w-4 h-4" />
                   </Button>
 
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full justify-between border-slate-600 bg-slate-800/50 text-slate-300 hover:bg-slate-700 hover:text-white"
                     onClick={() => window.open('https://app.uniswap.org/#/swap', '_blank')}
                   >
@@ -508,10 +642,10 @@ const UnifiedDashboard = () => {
               <CardContent className="space-y-6">
                 {/* Strategy Selection */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card 
+                  <Card
                     className={`cursor-pointer transition-all ${
-                      activeStrategy === 'safety' 
-                        ? 'ring-2 ring-blue-500 bg-blue-900/30 border-blue-500' 
+                      activeStrategy === 'safety'
+                        ? 'ring-2 ring-blue-500 bg-blue-900/30 border-blue-500'
                         : 'bg-slate-700/50 border-slate-600 hover:bg-slate-700/70'
                     }`}
                     onClick={() => setActiveStrategy('safety')}
@@ -526,10 +660,10 @@ const UnifiedDashboard = () => {
                     </CardContent>
                   </Card>
 
-                  <Card 
+                  <Card
                     className={`cursor-pointer transition-all ${
-                      activeStrategy === 'balanced' 
-                        ? 'ring-2 ring-purple-500 bg-purple-900/30 border-purple-500' 
+                      activeStrategy === 'balanced'
+                        ? 'ring-2 ring-purple-500 bg-purple-900/30 border-purple-500'
                         : 'bg-slate-700/50 border-slate-600 hover:bg-slate-700/70'
                     }`}
                     onClick={() => setActiveStrategy('balanced')}
@@ -544,10 +678,10 @@ const UnifiedDashboard = () => {
                     </CardContent>
                   </Card>
 
-                  <Card 
+                  <Card
                     className={`cursor-pointer transition-all ${
-                      activeStrategy === 'upside' 
-                        ? 'ring-2 ring-amber-500 bg-amber-900/30 border-amber-500' 
+                      activeStrategy === 'upside'
+                        ? 'ring-2 ring-amber-500 bg-amber-900/30 border-amber-500'
                         : 'bg-slate-700/50 border-slate-600 hover:bg-slate-700/70'
                     }`}
                     onClick={() => setActiveStrategy('upside')}
@@ -572,7 +706,7 @@ const UnifiedDashboard = () => {
                         onClick={() => setSelectedAsset('aUSDC')}
                         className={`p-4 rounded-lg border transition-all ${
                           selectedAsset === 'aUSDC'
-                            ? 'bg-blue-600/30 border-blue-500 text-blue-300' 
+                            ? 'bg-blue-600/30 border-blue-500 text-blue-300'
                             : 'bg-slate-700/60 border-slate-600 text-slate-200 hover:bg-slate-700/80 hover:text-white'
                         }`}
                       >
@@ -610,7 +744,7 @@ const UnifiedDashboard = () => {
                     />
                     <div className="flex justify-between mt-2 text-sm text-slate-300">
                       <span className="font-medium">Available: {formatNumber(selectedAsset === 'aUSDC' ? aUSDCBalance : cUSDTBalance, 4)}</span>
-                      <button 
+                      <button
                         onClick={() => setAmount((selectedAsset === 'aUSDC' ? aUSDCBalance : cUSDTBalance).toString())}
                         className="text-blue-400 hover:text-blue-300 font-medium"
                       >
@@ -644,7 +778,7 @@ const UnifiedDashboard = () => {
                 )}
 
                 {/* Execute Button */}
-                <Button 
+                <Button
                   onClick={() => executeStrategy(activeStrategy)}
                   disabled={!amount || parseFloat(amount) <= 0 || isExecuting}
                   className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
@@ -700,78 +834,130 @@ const UnifiedDashboard = () => {
                     )}
                   </div>
 
-                  {/* Slider Control */}
+                  {/* Target Allocation Buttons */}
                   <div className="space-y-3">
                     <Label className="text-slate-200 font-medium">Set Target Allocation</Label>
-                    <div className="px-2">
-                      <Slider
-                        value={[targetSeniorPercent]}
-                        onValueChange={(value) => {
-                          setTargetSeniorPercent(value[0]);
+                    <div className="grid grid-cols-5 gap-2">
+                      <Button
+                        variant={targetSeniorPercent === 0 ? "default" : "outline"}
+                        size="sm"
+                        className={targetSeniorPercent === 0 ? "bg-red-600 text-white" : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"}
+                        onClick={() => {
+                          setTargetSeniorPercent(0);
                           setIsRebalancePreview(true);
+                          calculateRebalancePreview(0);
                         }}
-                        max={100}
-                        min={0}
-                        step={5}
-                        className="w-full"
-                      />
+                      >
+                        0%<br/>Senior
+                      </Button>
+                      <Button
+                        variant={targetSeniorPercent === 25 ? "default" : "outline"}
+                        size="sm"
+                        className={targetSeniorPercent === 25 ? "bg-amber-600 text-white" : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"}
+                        onClick={() => {
+                          setTargetSeniorPercent(25);
+                          setIsRebalancePreview(true);
+                          calculateRebalancePreview(25);
+                        }}
+                      >
+                        25%<br/>Senior
+                      </Button>
+                      <Button
+                        variant={targetSeniorPercent === 50 ? "default" : "outline"}
+                        size="sm"
+                        className={targetSeniorPercent === 50 ? "bg-purple-600 text-white" : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"}
+                        onClick={() => {
+                          setTargetSeniorPercent(50);
+                          setIsRebalancePreview(true);
+                          calculateRebalancePreview(50);
+                        }}
+                      >
+                        50%<br/>Senior
+                      </Button>
+                      <Button
+                        variant={targetSeniorPercent === 75 ? "default" : "outline"}
+                        size="sm"
+                        className={targetSeniorPercent === 75 ? "bg-blue-600 text-white" : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"}
+                        onClick={() => {
+                          setTargetSeniorPercent(75);
+                          setIsRebalancePreview(true);
+                          calculateRebalancePreview(75);
+                        }}
+                      >
+                        75%<br/>Senior
+                      </Button>
+                      <Button
+                        variant={targetSeniorPercent === 100 ? "default" : "outline"}
+                        size="sm"
+                        className={targetSeniorPercent === 100 ? "bg-blue-800 text-white" : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"}
+                        onClick={() => {
+                          setTargetSeniorPercent(100);
+                          setIsRebalancePreview(true);
+                          calculateRebalancePreview(100);
+                        }}
+                      >
+                        100%<br/>Senior
+                      </Button>
                     </div>
-                    <div className="flex justify-between text-xs text-slate-400 font-medium px-2">
-                      <span>0% Senior<br />Max Risk</span>
-                      <span className="text-center">50% Senior<br />Balanced</span>
-                      <span className="text-right">100% Senior<br />Max Safety</span>
+                    <div className="flex justify-between text-xs text-slate-400 font-medium">
+                      <span>Max Risk</span>
+                      <span>Balanced</span>
+                      <span>Max Safety</span>
                     </div>
                   </div>
 
                   {/* Trade Preview */}
-                  {isRebalancePreview && Math.abs(targetSeniorPercent - riskProfile.percentage) > 0 && (
+                  {isRebalancePreview && rebalancePreview && (
                     <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 space-y-2">
                       <div className="text-sm font-medium text-white">Rebalance Preview</div>
-                      {targetSeniorPercent > riskProfile.percentage ? (
-                        <div className="space-y-1 text-sm">
-                          <div className="flex items-center text-blue-300">
+                      <div className="space-y-1 text-sm">
+                        <div className={`flex items-center ${rebalancePreview.tokenIn === 'junior' ? 'text-blue-300' : 'text-amber-300'}`}>
+                          {rebalancePreview.tokenIn === 'junior' ? (
                             <ArrowUpRight className="w-4 h-4 mr-2" />
-                            <span>Swap ~{formatNumber((juniorBalance * (targetSeniorPercent - riskProfile.percentage) / 100))} Junior → Senior</span>
-                          </div>
-                          <div className="text-slate-400 text-xs pl-6">
-                            Estimated output: ~{formatNumber((juniorBalance * (targetSeniorPercent - riskProfile.percentage) / 100) * parseFloat(juniorPrice))} Senior tokens
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-1 text-sm">
-                          <div className="flex items-center text-amber-300">
+                          ) : (
                             <ArrowDownRight className="w-4 h-4 mr-2" />
-                            <span>Swap ~{formatNumber((seniorBalance * (riskProfile.percentage - targetSeniorPercent) / 100))} Senior → Junior</span>
-                          </div>
-                          <div className="text-slate-400 text-xs pl-6">
-                            Estimated output: ~{formatNumber((seniorBalance * (riskProfile.percentage - targetSeniorPercent) / 100) / parseFloat(juniorPrice))} Junior tokens
-                          </div>
+                          )}
+                          <span>
+                            Swap {rebalancePreview.amountIn} {rebalancePreview.tokenIn === 'junior' ? 'Junior' : 'Senior'} → {rebalancePreview.tokenOut === 'junior' ? 'Junior' : 'Senior'}
+                          </span>
                         </div>
-                      )}
-                      <div className="flex items-center text-xs text-slate-400 pt-1">
-                        <Zap className="w-3 h-3 mr-1" />
-                        Estimated gas: ~0.15 GLMR
+                        <div className="text-slate-400 text-xs pl-6">
+                          Expected output: {rebalancePreview.amountOut} {rebalancePreview.tokenOut === 'junior' ? 'Junior' : 'Senior'} tokens
+                        </div>
+                        <div className="text-slate-400 text-xs pl-6">
+                          Price impact: ~{formatNumber((1 - parseFloat(rebalancePreview.amountOut) / (parseFloat(rebalancePreview.amountIn) * (rebalancePreview.tokenIn === 'junior' ? parseFloat(juniorPrice) : 1/parseFloat(juniorPrice)))) * 100, 2)}%
+                        </div>
                       </div>
                     </div>
                   )}
 
                   {/* Action Buttons */}
-                  {isRebalancePreview && Math.abs(targetSeniorPercent - riskProfile.percentage) > 0 ? (
+                  {isRebalancePreview && rebalancePreview ? (
                     <div className="grid grid-cols-2 gap-3">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"
                         onClick={() => {
                           setTargetSeniorPercent(Math.round(riskProfile.percentage));
                           setIsRebalancePreview(false);
+                          setRebalancePreview(null);
                         }}
                       >
                         Cancel
                       </Button>
-                      <Button 
+                      <Button
                         className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                        onClick={executeRebalance}
+                        disabled={isExecuting}
                       >
-                        Execute Rebalance
+                        {isExecuting ? (
+                          <div className="flex items-center">
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            Rebalancing...
+                          </div>
+                        ) : (
+                          'Execute Rebalance'
+                        )}
                       </Button>
                     </div>
                   ) : (
@@ -886,7 +1072,7 @@ const UnifiedDashboard = () => {
                     <div>
                       <p className="text-sm text-slate-300 font-medium">Pool Ratio</p>
                       <p className="text-lg font-bold text-purple-400">
-                        {parseFloat(poolReserves.junior) > 0 
+                        {parseFloat(poolReserves.junior) > 0
                           ? formatNumber(parseFloat(poolReserves.senior) / parseFloat(poolReserves.junior), 2)
                           : '1.00'
                         }
@@ -900,8 +1086,8 @@ const UnifiedDashboard = () => {
                     </div>
                   </div>
 
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"
                     onClick={() => window.open('https://app.uniswap.org/#/pool', '_blank')}
                   >
