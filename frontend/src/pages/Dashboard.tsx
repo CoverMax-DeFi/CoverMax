@@ -25,7 +25,7 @@ import PositionManagement from '@/components/dashboard/PositionManagement';
 import AdvancedFeatures from '@/components/dashboard/AdvancedFeatures';
 import MarketOverview from '@/components/dashboard/MarketOverview';
 
-const UnifiedDashboard = () => {
+const Dashboard = () => {
   const {
     isConnected,
     vaultInfo,
@@ -413,4 +413,4 @@ const UnifiedDashboard = () => {
   );
 };
 
-export default React.memo(UnifiedDashboard);
+export default React.memo(Dashboard);

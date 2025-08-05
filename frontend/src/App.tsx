@@ -7,7 +7,7 @@ import React from "react";
 
 // Import pages directly
 import Index from "./pages/Index";
-import UnifiedDashboard from "./pages/UnifiedDashboard";
+import Dashboard from "./pages/Dashboard";
 import Insurance from "./pages/Insurance";
 import Admin from "./pages/Admin";
 import WidgetDemo from "./pages/WidgetDemo";
@@ -29,10 +29,9 @@ const App: React.FC = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/dashboard" element={<Navigate to="/unified" replace />} />
-          <Route path="/unified" element={<UnifiedDashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/insurance" element={<Insurance />} />
-          <Route path="/advanced" element={<Navigate to="/unified" replace />} />
+          <Route path="/advanced" element={<Navigate to="/dashboard" replace />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/widget-demo" element={<WidgetDemo />} />
           <Route path="*" element={<NotFound />} />

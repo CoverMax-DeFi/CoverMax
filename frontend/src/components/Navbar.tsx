@@ -33,9 +33,9 @@ const Navbar: React.FC = () => {
             <Button
               variant="ghost"
               asChild
-              className={isActive("/unified") || isActive("/dashboard") || isActive("/advanced") ? "bg-blue-600 hover:bg-blue-700 text-white" : "text-slate-300 hover:text-white hover:bg-slate-800"}
+              className={isActive("/dashboard") || isActive("/advanced") ? "bg-blue-600 hover:bg-blue-700 text-white" : "text-slate-300 hover:text-white hover:bg-slate-800"}
             >
-              <Link to="/unified">Dashboard</Link>
+              <Link to="/dashboard">Dashboard</Link>
             </Button>
             <Button
               variant="ghost"

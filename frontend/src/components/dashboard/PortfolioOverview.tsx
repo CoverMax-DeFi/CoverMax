@@ -14,6 +14,10 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
+interface VaultInfo {
+  emergencyMode: boolean;
+}
+
 interface PortfolioOverviewProps {
   seniorBalance: number;
   juniorBalance: number;
@@ -28,7 +32,7 @@ interface PortfolioOverviewProps {
   formatNumber: (num: number, decimals?: number) => string;
   protocolTVL: number;
   userSharePercent: number;
-  vaultInfo: any;
+  vaultInfo: VaultInfo;
   onTabChange: (tab: string) => void;
 }
 
