@@ -89,7 +89,7 @@ const Index = () => {
               </Button>
 
               <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                <Link to="/dashboard">
+                <Link to="/unified">
                   {isConnected ? 'Dashboard' : 'Launch App'}
                   <ArrowRight className="ml-2 w-4 h-4" />
                 </Link>
@@ -126,7 +126,7 @@ const Index = () => {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
               <Button size="lg" asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-6">
-                <Link to="/dashboard">
+                <Link to="/unified">
                   Start Trading
                   <TrendingUp className="ml-2 w-5 h-5" />
                 </Link>
@@ -299,7 +299,7 @@ const Index = () => {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-6">
-                <Link to="/dashboard">
+                <Link to="/unified">
                   Launch Protocol
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Link>
@@ -359,7 +359,7 @@ const Index = () => {
             <div>
               <h4 className="font-semibold text-white mb-4">Protocol</h4>
               <div className="space-y-2">
-                <Link to="/dashboard" className="block text-slate-400 hover:text-white transition-colors">Dashboard</Link>
+                <Link to="/unified" className="block text-slate-400 hover:text-white transition-colors">Dashboard</Link>
                 <Link to="/insurance" className="block text-slate-400 hover:text-white transition-colors">Try Demo</Link>
                 <Link to="/admin" className="block text-slate-400 hover:text-white transition-colors">Analytics</Link>
               </div>

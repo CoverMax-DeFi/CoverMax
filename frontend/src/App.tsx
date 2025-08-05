@@ -7,13 +7,12 @@ import React from "react";
 
 // Import pages directly
 import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
 import UnifiedDashboard from "./pages/UnifiedDashboard";
 import Insurance from "./pages/Insurance";
-import Advanced from "./pages/Advanced";
 import Admin from "./pages/Admin";
 import WidgetDemo from "./pages/WidgetDemo";
 import NotFound from "./pages/NotFound";
+import { Navigate } from "react-router-dom";
 
 const AppProviders: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => (
   <TooltipProvider>
@@ -30,10 +29,10 @@ const App: React.FC = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Navigate to="/unified" replace />} />
           <Route path="/unified" element={<UnifiedDashboard />} />
           <Route path="/insurance" element={<Insurance />} />
-          <Route path="/advanced" element={<Advanced />} />
+          <Route path="/advanced" element={<Navigate to="/unified" replace />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/widget-demo" element={<WidgetDemo />} />
           <Route path="*" element={<NotFound />} />
