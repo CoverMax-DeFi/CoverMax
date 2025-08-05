@@ -164,15 +164,15 @@ const PositionManagement: React.FC<PositionManagementProps> = ({
         </CardContent>
       </Card>
 
-      {/* Optimal Asset Redemption */}
+      {/* Withdraw */}
       <Card className="bg-slate-800/80 border-slate-600 shadow-lg">
         <CardHeader>
           <CardTitle className="text-white flex items-center font-semibold">
             <Minus className="w-5 h-5 mr-2" />
-            Optimal Asset Redemption
+            Withdraw
           </CardTitle>
           <CardDescription className="text-slate-200">
-            Choose target asset and amount - system calculates optimal token usage
+            Choose target asset and amount to withdraw from your position
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

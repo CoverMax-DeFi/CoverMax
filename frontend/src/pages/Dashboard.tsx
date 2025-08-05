@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useWeb3 } from '@/context/PrivyWeb3Context';
 import Navbar from '@/components/Navbar';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Phase } from '@/config/contracts';
+import StatCard from '@/components/StatCard';
 
 // Import custom hooks
 import { usePricing } from '@/hooks/usePricing';
@@ -152,7 +153,7 @@ const Dashboard = () => {
   };
 
   // Withdrawal handler
-  const handleWithdraw = async (asset: 'aUSDC' | 'cUSDT', amount: string) => {
+  const handleWithdraw = async (amount: string) => {
     if (!amount || parseFloat(amount) <= 0) return;
 
     setIsExecuting(true);
@@ -269,67 +270,37 @@ const Dashboard = () => {
 
         {/* Key Metrics Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-          <Card className="bg-slate-800/80 border-slate-600 backdrop-blur-sm shadow-lg">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-300 font-medium">Portfolio Value</p>
-                  <p className="text-2xl font-bold text-white">${formatNumber(totalPortfolioValue)}</p>
-                </div>
-                <DollarSign className="w-8 h-8 text-green-400" />
-              </div>
-              <div className="mt-2 text-xs text-slate-400 font-medium">
-                {formatNumber(userSharePercent, 4)}% of protocol
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Portfolio Value"
+            value={`$${formatNumber(totalPortfolioValue)}`}
+            description={`${formatNumber(userSharePercent, 4)}% of protocol`}
+            icon={<DollarSign className="w-8 h-8 text-green-400" />}
+            className="text-white"
+          />
 
-          <Card className="bg-slate-800/80 border-slate-600 backdrop-blur-sm shadow-lg">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-300 font-medium">Senior Tokens</p>
-                  <p className="text-2xl font-bold text-blue-400">{formatNumber(seniorBalance)}</p>
-                </div>
-                <Shield className="w-8 h-8 text-blue-400" />
-              </div>
-              <div className="mt-2 text-xs text-slate-400 font-medium">
-                ${formatNumber(seniorBalance * parseFloat(seniorPrice))} value
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Senior Tokens"
+            value={formatNumber(seniorBalance)}
+            description={`$${formatNumber(seniorBalance * parseFloat(seniorPrice))} value`}
+            icon={<Shield className="w-8 h-8 text-blue-400" />}
+            className="text-blue-400"
+          />
 
-          <Card className="bg-slate-800/80 border-slate-600 backdrop-blur-sm shadow-lg">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-300 font-medium">Junior Tokens</p>
-                  <p className="text-2xl font-bold text-amber-400">{formatNumber(juniorBalance)}</p>
-                </div>
-                <TrendingUp className="w-8 h-8 text-amber-400" />
-              </div>
-              <div className="mt-2 text-xs text-slate-400 font-medium">
-                ${formatNumber(juniorBalance * parseFloat(juniorPrice))} value
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Junior Tokens"
+            value={formatNumber(juniorBalance)}
+            description={`$${formatNumber(juniorBalance * parseFloat(juniorPrice))} value`}
+            icon={<TrendingUp className="w-8 h-8 text-amber-400" />}
+            className="text-amber-400"
+          />
 
-          <Card className="bg-slate-800/80 border-slate-600 backdrop-blur-sm shadow-lg">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-300 font-medium">Protocol Phase</p>
-                  <p className="text-2xl font-bold text-white">
-                    {vaultInfo.currentPhase !== undefined ? Phase[vaultInfo.currentPhase] : 'Loading...'}
-                  </p>
-                </div>
-                <Clock className="w-8 h-8 text-purple-400" />
-              </div>
-              <div className="mt-2 text-xs text-slate-400 font-medium">
-                TVL: ${formatNumber(protocolTVL, 0)}
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Protocol Phase"
+            value={vaultInfo.currentPhase !== undefined ? Phase[vaultInfo.currentPhase] : 'Loading...'}
+            description={`TVL: $${formatNumber(protocolTVL, 0)}`}
+            icon={<Clock className="w-8 h-8 text-purple-400" />}
+            className="text-white"
+          />
         </div>
 
         {/* Main Content Tabs */}

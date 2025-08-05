@@ -18,7 +18,7 @@ interface AdvancedFeaturesProps {
   lpBalance: number;
   formatNumber: (num: number, decimals?: number) => string;
   isExecuting: boolean;
-  vaultInfo: any;
+  vaultInfo: { emergencyMode: boolean };
   onAddLiquidity: (seniorAmount: string, juniorAmount: string) => void;
   onRemoveLiquidity: (amount: string) => void;
   onEmergencyWithdraw: (amount: string, asset: 'aUSDC' | 'cUSDT') => void;
@@ -163,7 +163,7 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
             Remove Liquidity
           </CardTitle>
           <CardDescription className="text-slate-200">
-            Remove liquidity from the SENIOR/JUNIOR pool
+            Remove your LP tokens from the SENIOR/JUNIOR pool to get back your underlying tokens. You'll receive proportional amounts of both SENIOR and JUNIOR tokens.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
