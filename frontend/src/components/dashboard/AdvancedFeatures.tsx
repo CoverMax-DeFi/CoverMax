@@ -69,15 +69,15 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-      {/* Add Liquidity */}
+      {/* Stake Tokens */}
       <Card className="bg-slate-800/80 border-slate-600 shadow-lg">
         <CardHeader>
           <CardTitle className="text-white flex items-center font-semibold">
-            <Droplets className="w-5 h-5 mr-2" />
-            Add Liquidity
+            <Plus className="w-5 h-5 mr-2" />
+            Stake Risk Tokens
           </CardTitle>
           <CardDescription className="text-slate-200">
-            Provide liquidity to earn trading fees
+            Stake your SENIOR and JUNIOR tokens to earn higher rewards from trading fees
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -93,7 +93,7 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
             disabled={seniorBalance <= 0 && juniorBalance <= 0}
             className="w-full bg-blue-600/20 border border-blue-500 text-blue-300 hover:bg-blue-600/30"
           >
-            Preview Optimal Amounts
+            Preview Optimal Staking Amounts
           </Button>
 
           <div className="grid grid-cols-2 gap-3">
@@ -130,7 +130,7 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
             <Alert className="bg-slate-700/50 border-slate-600 text-slate-300">
               <Info className="h-4 w-4" />
               <AlertDescription>
-                You'll receive LP tokens proportional to your share of the pool
+                You'll receive staking rewards proportional to your share of the pool
               </AlertDescription>
             </Alert>
           )}
@@ -143,38 +143,38 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
             {isExecuting ? (
               <div className="flex items-center">
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                Adding...
+                Staking...
               </div>
             ) : (
               <>
                 <Plus className="w-4 h-4 mr-2" />
-                Add Liquidity
+                Stake Tokens
               </>
             )}
           </Button>
         </CardContent>
       </Card>
 
-      {/* Remove Liquidity */}
+      {/* Unstake Tokens */}
       <Card className="bg-slate-800/80 border-slate-600 shadow-lg">
         <CardHeader>
           <CardTitle className="text-white flex items-center font-semibold">
             <Minus className="w-5 h-5 mr-2" />
-            Remove Liquidity
+            Unstake Risk Tokens
           </CardTitle>
           <CardDescription className="text-slate-200">
-            Remove your LP tokens from the SENIOR/JUNIOR pool to get back your underlying tokens. You'll receive proportional amounts of both SENIOR and JUNIOR tokens.
+            Unstake your tokens from the reward pool to get back your underlying tokens. You'll receive proportional amounts of both SENIOR and JUNIOR tokens.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-center p-3 bg-slate-700/50 rounded-lg border border-slate-600/50">
-            <p className="text-sm text-slate-300 mb-1 font-medium">Current LP Position</p>
-            <p className="text-xl font-bold text-purple-400">{formatNumber(lpBalance)} LP</p>
-            <p className="text-xs text-slate-400 font-medium">Pool share tokens</p>
+            <p className="text-sm text-slate-300 mb-1 font-medium">Current Staked Position</p>
+            <p className="text-xl font-bold text-purple-400">{formatNumber(lpBalance)} Staked</p>
+            <p className="text-xs text-slate-400 font-medium">Earning rewards</p>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-200 font-medium">LP Token Amount</Label>
+            <Label className="text-slate-200 font-medium">Amount to Unstake</Label>
             <Input
               type="number"
               placeholder="0.0"
@@ -183,7 +183,7 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
               className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
             />
             <p className="text-sm text-slate-400 mt-1">
-              LP Balance: {formatNumber(lpBalance)}
+              Staked Balance: {formatNumber(lpBalance)}
             </p>
           </div>
 
@@ -191,7 +191,7 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
             <Alert className="bg-slate-700/50 border-slate-600 text-slate-300">
               <Info className="h-4 w-4" />
               <AlertDescription>
-                You'll receive proportional amounts of SENIOR and JUNIOR tokens
+                You'll receive proportional amounts of SENIOR and JUNIOR tokens plus any earned rewards
               </AlertDescription>
             </Alert>
           )}
@@ -204,10 +204,10 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
             {isExecuting ? (
               <div className="flex items-center">
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                Removing...
+                Unstaking...
               </div>
             ) : (
-              'Remove Liquidity'
+              'Unstake Tokens'
             )}
           </Button>
         </CardContent>

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { Phase } from '@/config/contracts';
 import {
   Activity,
   Minus,
@@ -247,7 +248,10 @@ const PositionManagement: React.FC<PositionManagementProps> = ({
           <Alert className="bg-yellow-900/30 border-yellow-500">
             <AlertCircle className="h-4 w-4 text-yellow-400" />
             <AlertDescription className="text-yellow-200">
-              Current phase: {vaultInfo.currentPhase !== undefined ? `Phase ${vaultInfo.currentPhase}` : 'Loading...'}. Phase affects withdrawal rules.
+              {vaultInfo.currentPhase === 0 && 'Withdrawals require equal amounts of SENIOR and JUNIOR tokens.'}
+              {vaultInfo.currentPhase === 1 && 'Any combination of SENIOR and JUNIOR tokens can be withdrawn.'}
+              {vaultInfo.currentPhase === 2 && 'All token holders can withdraw remaining funds with any token combination.'}
+              {vaultInfo.currentPhase === undefined && 'Loading withdrawal rules...'}
             </AlertDescription>
           </Alert>
         </CardContent>
