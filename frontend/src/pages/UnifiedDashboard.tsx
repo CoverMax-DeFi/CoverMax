@@ -9,7 +9,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Slider } from '@/components/ui/slider';
 import {
   Shield,
   TrendingUp,
@@ -26,14 +25,10 @@ import {
   BarChart3,
   Target,
   Users,
-  Lock,
-  Unlock,
   ExternalLink,
-  ChevronRight,
   Plus,
   Minus,
   Settings,
-  TrendingDown
 } from 'lucide-react';
 import { Phase, ContractName, getContractAddress } from '@/config/contracts';
 import { ethers } from 'ethers';
