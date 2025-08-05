@@ -150,7 +150,7 @@ const UnifiedDashboard = () => {
         const targetSeniorAmount = (totalTokens * targetPercent) / 100;
         const seniorNeeded = targetSeniorAmount - seniorBalance;
         const juniorToSwap = Math.min(seniorNeeded / parseFloat(juniorPrice), juniorBalance);
-        
+
         amountIn = juniorToSwap.toFixed(18);
         path = [juniorTokenAddress, seniorTokenAddress];
         tokenIn = 'junior';
@@ -161,7 +161,7 @@ const UnifiedDashboard = () => {
         const targetJuniorAmount = (totalTokens * (100 - targetPercent)) / 100;
         const juniorNeeded = targetJuniorAmount - juniorBalance;
         const seniorToSwap = Math.min(juniorNeeded * parseFloat(juniorPrice), seniorBalance);
-        
+
         amountIn = seniorToSwap.toFixed(18);
         path = [seniorTokenAddress, juniorTokenAddress];
         tokenIn = 'senior';
@@ -245,7 +245,7 @@ const UnifiedDashboard = () => {
         const targetSeniorAmount = (totalTokens * targetPercent) / 100;
         const seniorNeeded = targetSeniorAmount - seniorBalance;
         const juniorToSwap = Math.min(seniorNeeded / parseFloat(juniorPrice), juniorBalance);
-        
+
         amountIn = juniorToSwap.toFixed(18);
         path = [juniorTokenAddress, seniorTokenAddress];
       } else {
@@ -254,7 +254,7 @@ const UnifiedDashboard = () => {
         const targetJuniorAmount = (totalTokens * (100 - targetPercent)) / 100;
         const juniorNeeded = targetJuniorAmount - juniorBalance;
         const seniorToSwap = Math.min(juniorNeeded * parseFloat(juniorPrice), seniorBalance);
-        
+
         amountIn = seniorToSwap.toFixed(18);
         path = [seniorTokenAddress, juniorTokenAddress];
       }
@@ -346,35 +346,36 @@ const UnifiedDashboard = () => {
 
       <Navbar />
 
-      <div className="relative z-10 container mx-auto px-6 py-8">
+      <div className="relative z-10 container mx-auto px-4 md:px-6 py-4 md:py-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">Portfolio Dashboard</h1>
-              <p className="text-slate-300">
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Portfolio Dashboard</h1>
+              <p className="text-slate-300 text-sm md:text-base">
                 Smart risk management with tradeable insurance tokens
               </p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
               <Badge
                 variant="outline"
-                className={`border-${riskProfile.color}-500 text-${riskProfile.color}-400`}
+                className={`border-${riskProfile.color}-500 text-${riskProfile.color}-400 text-xs md:text-sm`}
               >
                 {riskProfile.level} Risk Profile
               </Badge>
               <Button variant="outline" size="sm" onClick={refreshData}>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh
+                <span className="hidden sm:inline">Refresh</span>
+                <span className="sm:hidden">Refresh</span>
               </Button>
             </div>
           </div>
         </div>
 
         {/* Key Metrics Row */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
           <Card className="bg-slate-800/80 border-slate-600 backdrop-blur-sm shadow-lg">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-300 font-medium">Portfolio Value</p>
@@ -389,7 +390,7 @@ const UnifiedDashboard = () => {
           </Card>
 
           <Card className="bg-slate-800/80 border-slate-600 backdrop-blur-sm shadow-lg">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-300 font-medium">Senior Tokens</p>
@@ -404,7 +405,7 @@ const UnifiedDashboard = () => {
           </Card>
 
           <Card className="bg-slate-800/80 border-slate-600 backdrop-blur-sm shadow-lg">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-300 font-medium">Junior Tokens</p>
@@ -419,7 +420,7 @@ const UnifiedDashboard = () => {
           </Card>
 
           <Card className="bg-slate-800/80 border-slate-600 backdrop-blur-sm shadow-lg">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-300 font-medium">Protocol Phase</p>
@@ -436,9 +437,10 @@ const UnifiedDashboard = () => {
           </Card>
         </div>
 
+
         {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-slate-800/80 border border-slate-600">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-slate-800/80 border border-slate-600">
             <TabsTrigger value="overview" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300 font-medium">Overview</TabsTrigger>
             <TabsTrigger value="deposit" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300 font-medium">Deposit & Trade</TabsTrigger>
             <TabsTrigger value="manage" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300 font-medium">Manage Positions</TabsTrigger>
@@ -446,8 +448,8 @@ const UnifiedDashboard = () => {
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <TabsContent value="overview" className="space-y-4 md:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
               {/* Portfolio Breakdown */}
               <Card className="lg:col-span-2 bg-slate-800/80 border-slate-600 shadow-lg">
                 <CardHeader>
@@ -553,10 +555,10 @@ const UnifiedDashboard = () => {
                   <Button
                     variant="outline"
                     className="w-full justify-between border-slate-600 bg-slate-800/50 text-slate-300 hover:bg-slate-700 hover:text-white"
-                    onClick={() => window.open('https://app.uniswap.org/#/swap', '_blank')}
+                    onClick={() => setActiveTab('advanced')}
                   >
-                    Trade on Uniswap
-                    <ExternalLink className="w-4 h-4" />
+                    Stake Risk Tokens
+                    <Droplets className="w-4 h-4" />
                   </Button>
 
                   {/* Protocol Status */}
@@ -578,57 +580,10 @@ const UnifiedDashboard = () => {
               </Card>
             </div>
 
-            {/* Market Overview */}
-            <Card className="bg-slate-800/80 border-slate-600 shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center font-semibold">
-                  <Activity className="w-5 h-5 mr-2" />
-                  Market Overview
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  <div className="text-center">
-                    <p className="text-sm text-slate-300 mb-1 font-medium">Senior Price</p>
-                    <p className="text-xl font-bold text-blue-400">${seniorPrice}</p>
-                    <div className="flex items-center justify-center mt-1">
-                      <TrendingUp className="w-3 h-3 text-green-400 mr-1" />
-                      <span className="text-xs text-green-400 font-medium">Stable</span>
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-slate-300 mb-1 font-medium">Junior Price</p>
-                    <p className="text-xl font-bold text-amber-400">${juniorPrice}</p>
-                    <div className="flex items-center justify-center mt-1">
-                      <TrendingUp className="w-3 h-3 text-green-400 mr-1" />
-                      <span className="text-xs text-green-400 font-medium">Volatile</span>
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-slate-300 mb-1 font-medium">Pool Liquidity</p>
-                    <p className="text-xl font-bold text-purple-400">
-                      ${formatNumber((parseFloat(poolReserves.senior) + parseFloat(poolReserves.junior)), 0)}
-                    </p>
-                    <div className="flex items-center justify-center mt-1">
-                      <Droplets className="w-3 h-3 text-purple-400 mr-1" />
-                      <span className="text-xs text-purple-400 font-medium">Deep</span>
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-slate-300 mb-1 font-medium">Protocol TVL</p>
-                    <p className="text-xl font-bold text-green-400">${formatNumber(protocolTVL, 0)}</p>
-                    <div className="flex items-center justify-center mt-1">
-                      <Users className="w-3 h-3 text-green-400 mr-1" />
-                      <span className="text-xs text-green-400 font-medium">Growing</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* Deposit & Trade Tab */}
-          <TabsContent value="deposit" className="space-y-6">
+          <TabsContent value="deposit" className="space-y-4 md:space-y-6">
             <Card className="bg-slate-800/80 border-slate-600 shadow-lg">
               <CardHeader>
                 <CardTitle className="text-white flex items-center font-semibold">
@@ -641,7 +596,7 @@ const UnifiedDashboard = () => {
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Strategy Selection */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
                   <Card
                     className={`cursor-pointer transition-all ${
                       activeStrategy === 'safety'
@@ -650,7 +605,7 @@ const UnifiedDashboard = () => {
                     }`}
                     onClick={() => setActiveStrategy('safety')}
                   >
-                    <CardContent className="p-4 text-center">
+                    <CardContent className="p-3 md:p-4 text-center">
                       <Shield className="w-8 h-8 text-blue-400 mx-auto mb-2" />
                       <h3 className="font-semibold text-white mb-1">Max Safety</h3>
                       <p className="text-xs text-slate-300 mb-2">All funds → Senior tokens</p>
@@ -668,7 +623,7 @@ const UnifiedDashboard = () => {
                     }`}
                     onClick={() => setActiveStrategy('balanced')}
                   >
-                    <CardContent className="p-4 text-center">
+                    <CardContent className="p-3 md:p-4 text-center">
                       <Activity className="w-8 h-8 text-purple-400 mx-auto mb-2" />
                       <h3 className="font-semibold text-white mb-1">Balanced</h3>
                       <p className="text-xs text-slate-300 mb-2">50% Senior / 50% Junior</p>
@@ -686,7 +641,7 @@ const UnifiedDashboard = () => {
                     }`}
                     onClick={() => setActiveStrategy('upside')}
                   >
-                    <CardContent className="p-4 text-center">
+                    <CardContent className="p-3 md:p-4 text-center">
                       <TrendingUp className="w-8 h-8 text-amber-400 mx-auto mb-2" />
                       <h3 className="font-semibold text-white mb-1">Max Upside</h3>
                       <p className="text-xs text-slate-300 mb-2">All funds → Junior tokens</p>
@@ -698,7 +653,7 @@ const UnifiedDashboard = () => {
                 </div>
 
                 {/* Deposit Form */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                   <div>
                     <Label className="text-slate-200 mb-3 block font-medium">Select Asset</Label>
                     <div className="grid grid-cols-2 gap-3">
@@ -797,8 +752,8 @@ const UnifiedDashboard = () => {
           </TabsContent>
 
           {/* Manage Positions Tab */}
-          <TabsContent value="manage" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TabsContent value="manage" className="space-y-4 md:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               {/* Rebalance Portfolio */}
               <Card className="bg-slate-800/80 border-slate-600 shadow-lg">
                 <CardHeader>
@@ -837,72 +792,72 @@ const UnifiedDashboard = () => {
                   {/* Target Allocation Buttons */}
                   <div className="space-y-3">
                     <Label className="text-slate-200 font-medium">Set Target Allocation</Label>
-                    <div className="grid grid-cols-5 gap-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                       <Button
                         variant={targetSeniorPercent === 0 ? "default" : "outline"}
                         size="sm"
-                        className={targetSeniorPercent === 0 ? "bg-red-600 text-white" : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"}
+                        className={`${targetSeniorPercent === 0 ? "bg-red-600 text-white" : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"} text-xs sm:text-sm min-h-[2.5rem]`}
                         onClick={() => {
                           setTargetSeniorPercent(0);
                           setIsRebalancePreview(true);
                           calculateRebalancePreview(0);
                         }}
                       >
-                        0%<br/>Senior
+                        <span className="text-center">0%<br/>Protection</span>
                       </Button>
                       <Button
                         variant={targetSeniorPercent === 25 ? "default" : "outline"}
                         size="sm"
-                        className={targetSeniorPercent === 25 ? "bg-amber-600 text-white" : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"}
+                        className={`${targetSeniorPercent === 25 ? "bg-amber-600 text-white" : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"} text-xs sm:text-sm min-h-[2.5rem]`}
                         onClick={() => {
                           setTargetSeniorPercent(25);
                           setIsRebalancePreview(true);
                           calculateRebalancePreview(25);
                         }}
                       >
-                        25%<br/>Senior
+                        <span className="text-center">25%<br/>Protection</span>
                       </Button>
                       <Button
                         variant={targetSeniorPercent === 50 ? "default" : "outline"}
                         size="sm"
-                        className={targetSeniorPercent === 50 ? "bg-purple-600 text-white" : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"}
+                        className={`${targetSeniorPercent === 50 ? "bg-purple-600 text-white" : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"} text-xs sm:text-sm min-h-[2.5rem]`}
                         onClick={() => {
                           setTargetSeniorPercent(50);
                           setIsRebalancePreview(true);
                           calculateRebalancePreview(50);
                         }}
                       >
-                        50%<br/>Senior
+                        <span className="text-center">50%<br/>Protection</span>
                       </Button>
                       <Button
                         variant={targetSeniorPercent === 75 ? "default" : "outline"}
                         size="sm"
-                        className={targetSeniorPercent === 75 ? "bg-blue-600 text-white" : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"}
+                        className={`${targetSeniorPercent === 75 ? "bg-blue-600 text-white" : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"} text-xs sm:text-sm min-h-[2.5rem]`}
                         onClick={() => {
                           setTargetSeniorPercent(75);
                           setIsRebalancePreview(true);
                           calculateRebalancePreview(75);
                         }}
                       >
-                        75%<br/>Senior
+                        <span className="text-center">75%<br/>Protection</span>
                       </Button>
                       <Button
                         variant={targetSeniorPercent === 100 ? "default" : "outline"}
                         size="sm"
-                        className={targetSeniorPercent === 100 ? "bg-blue-800 text-white" : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"}
+                        className={`${targetSeniorPercent === 100 ? "bg-blue-800 text-white" : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"} text-xs sm:text-sm min-h-[2.5rem]`}
                         onClick={() => {
                           setTargetSeniorPercent(100);
                           setIsRebalancePreview(true);
                           calculateRebalancePreview(100);
                         }}
                       >
-                        100%<br/>Senior
+                        <span className="text-center">100%<br/>Protection</span>
                       </Button>
                     </div>
-                    <div className="flex justify-between text-xs text-slate-400 font-medium">
-                      <span>Max Risk</span>
-                      <span>Balanced</span>
-                      <span>Max Safety</span>
+                    <div className="flex justify-between text-xs text-slate-400 font-medium px-2">
+                      <span className="text-center">Max Risk</span>
+                      <span className="text-center hidden sm:block">Balanced</span>
+                      <span className="text-center">Max Safety</span>
                     </div>
                   </div>
 
@@ -933,7 +888,7 @@ const UnifiedDashboard = () => {
 
                   {/* Action Buttons */}
                   {isRebalancePreview && rebalancePreview ? (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Button
                         variant="outline"
                         className="border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"
@@ -964,7 +919,7 @@ const UnifiedDashboard = () => {
                     <Alert className="bg-blue-900/30 border-blue-500">
                       <Info className="h-4 w-4 text-blue-400" />
                       <AlertDescription className="text-blue-200">
-                        Use the slider above to set your target allocation. Trades will be executed on Uniswap V2.
+                        Use the buttons above to set your target allocation. Trades will be executed via AMM.
                       </AlertDescription>
                     </Alert>
                   )}
@@ -997,7 +952,7 @@ const UnifiedDashboard = () => {
 
                   <div className="space-y-2">
                     <Label className="text-slate-200 font-medium">Preferred Asset</Label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Button variant="outline" className="border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700">aUSDC</Button>
                       <Button variant="outline" className="border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700">cUSDT</Button>
                     </div>
@@ -1019,33 +974,46 @@ const UnifiedDashboard = () => {
           </TabsContent>
 
           {/* Advanced Tab */}
-          <TabsContent value="advanced" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Liquidity Management */}
+          <TabsContent value="advanced" className="space-y-4 md:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+              {/* Stake Risk Tokens */}
               <Card className="bg-slate-800/80 border-slate-600 shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center font-semibold">
                     <Droplets className="w-5 h-5 mr-2" />
-                    Liquidity Management
+                    Stake Risk Tokens
                   </CardTitle>
                   <CardDescription className="text-slate-200">
-                    Provide liquidity to earn trading fees
+                    Add your Senior/Junior tokens to Uniswap pool to earn trading fees
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="text-center p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-                    <p className="text-sm text-slate-300 mb-1 font-medium">Current LP Position</p>
+                    <p className="text-sm text-slate-300 mb-1 font-medium">Current Staked Position</p>
                     <p className="text-xl font-bold text-purple-400">{formatNumber(lpBalance)} LP</p>
-                    <p className="text-xs text-slate-400 font-medium">Pool share</p>
+                    <p className="text-xs text-slate-400 font-medium">Earning fees from {formatNumber(seniorBalance)} Senior + {formatNumber(juniorBalance)} Junior</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-300">Available to Stake:</span>
+                      <span className="text-white font-semibold">{formatNumber(seniorBalance + juniorBalance)} tokens</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-300">Estimated APR:</span>
+                      <span className="text-green-400 font-semibold">12.5%</span>
+                    </div>
                   </div>
 
                   <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
-                    Add Optimal Liquidity
+                    <Droplets className="w-4 h-4 mr-2" />
+                    Stake Risk Tokens
                   </Button>
 
                   {lpBalance > 0 && (
                     <Button variant="outline" className="w-full border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700">
-                      Remove Liquidity
+                      <Minus className="w-4 h-4 mr-2" />
+                      Unstake Tokens
                     </Button>
                   )}
                 </CardContent>
@@ -1060,7 +1028,7 @@ const UnifiedDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4 text-center">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
                     <div>
                       <p className="text-sm text-slate-300 font-medium">Total TVL</p>
                       <p className="text-lg font-bold text-green-400">${formatNumber(protocolTVL, 0)}</p>
@@ -1099,6 +1067,54 @@ const UnifiedDashboard = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Market Overview - Always Visible at Bottom */}
+        <Card className="bg-slate-800/80 border-slate-600 shadow-lg mt-6 md:mt-8">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center font-semibold">
+              <Activity className="w-5 h-5 mr-2" />
+              Market Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              <div className="text-center">
+                <p className="text-sm text-slate-300 mb-1 font-medium">Senior Price</p>
+                <p className="text-xl font-bold text-blue-400">${seniorPrice}</p>
+                <div className="flex items-center justify-center mt-1">
+                  <TrendingUp className="w-3 h-3 text-green-400 mr-1" />
+                  <span className="text-xs text-green-400 font-medium">Stable</span>
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-slate-300 mb-1 font-medium">Junior Price</p>
+                <p className="text-xl font-bold text-amber-400">${juniorPrice}</p>
+                <div className="flex items-center justify-center mt-1">
+                  <TrendingUp className="w-3 h-3 text-green-400 mr-1" />
+                  <span className="text-xs text-green-400 font-medium">Volatile</span>
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-slate-300 mb-1 font-medium">Pool Liquidity</p>
+                <p className="text-xl font-bold text-purple-400">
+                  ${formatNumber((parseFloat(poolReserves.senior) + parseFloat(poolReserves.junior)), 0)}
+                </p>
+                <div className="flex items-center justify-center mt-1">
+                  <Droplets className="w-3 h-3 text-purple-400 mr-1" />
+                  <span className="text-xs text-purple-400 font-medium">Deep</span>
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-slate-300 mb-1 font-medium">Protocol TVL</p>
+                <p className="text-xl font-bold text-green-400">${formatNumber(protocolTVL, 0)}</p>
+                <div className="flex items-center justify-center mt-1">
+                  <Users className="w-3 h-3 text-green-400 mr-1" />
+                  <span className="text-xs text-green-400 font-medium">Growing</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
