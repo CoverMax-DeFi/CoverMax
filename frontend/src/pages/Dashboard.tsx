@@ -37,8 +37,8 @@ const Dashboard = () => {
     getAmountsOut,
     seniorTokenAddress,
     juniorTokenAddress,
-    addLiquidity,
-    removeLiquidity,
+    stakeRiskTokens,
+    unstakeRiskTokens,
     refreshData,
     getTokenBalance,
   } = useWeb3();
@@ -169,28 +169,28 @@ const Dashboard = () => {
     }
   };
 
-  // Liquidity handlers
-  const handleAddLiquidity = async (seniorAmount: string, juniorAmount: string) => {
+  // Risk token staking handlers
+  const handleStakeRiskTokens = async (seniorAmount: string, juniorAmount: string) => {
     if (!seniorTokenAddress || !juniorTokenAddress) return;
     setIsExecuting(true);
     try {
-      await addLiquidity(seniorAmount, juniorAmount, seniorTokenAddress, juniorTokenAddress);
+      await stakeRiskTokens(seniorAmount, juniorAmount, seniorTokenAddress, juniorTokenAddress);
       await refreshData();
     } catch (error) {
-      console.error('Add liquidity failed:', error);
+      console.error('Stake risk tokens failed:', error);
     } finally {
       setIsExecuting(false);
     }
   };
 
-  const handleRemoveLiquidity = async (amount: string) => {
+  const handleUnstakeRiskTokens = async (amount: string) => {
     if (!seniorTokenAddress || !juniorTokenAddress) return;
     setIsExecuting(true);
     try {
-      await removeLiquidity(amount, seniorTokenAddress, juniorTokenAddress);
+      await unstakeRiskTokens(amount, seniorTokenAddress, juniorTokenAddress);
       await refreshData();
     } catch (error) {
-      console.error('Remove liquidity failed:', error);
+      console.error('Unstake risk tokens failed:', error);
     } finally {
       setIsExecuting(false);
     }
@@ -362,8 +362,8 @@ const Dashboard = () => {
               formatNumber={formatNumber}
               isExecuting={isExecuting}
               vaultInfo={vaultInfo}
-              onAddLiquidity={handleAddLiquidity}
-              onRemoveLiquidity={handleRemoveLiquidity}
+              onStakeRiskTokens={handleStakeRiskTokens}
+              onUnstakeRiskTokens={handleUnstakeRiskTokens}
               onEmergencyWithdraw={handleEmergencyWithdraw}
             />
           </TabsContent>

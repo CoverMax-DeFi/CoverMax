@@ -101,15 +101,15 @@ interface Web3ContextType {
     path: string[],
   ) => Promise<string>;
 
-  addLiquidity: (
+  stakeRiskTokens: (
     tokenAAmount: string,
     tokenBAmount: string,
     tokenA: string,
     tokenB: string,
   ) => Promise<void>;
 
-  removeLiquidity: (
-    lpTokenAmount: string,
+  unstakeRiskTokens: (
+    stakedTokenAmount: string,
     tokenA: string,
     tokenB: string,
   ) => Promise<void>;
@@ -160,14 +160,15 @@ const Web3Context = createContext<Web3ContextType>({
   emergencyWithdraw: async () => {},
   toggleEmergencyMode: async () => {},
   forcePhaseTransition: async () => {},
+  forcePhaseTransitionImmediate: async () => {},
   startNewCycle: async () => {},
   refreshData: async () => {},
   approveToken: async () => {},
   calculateWithdrawalAmounts: async () => ({ aUSDC: 0n, cUSDT: 0n }),
   swapExactTokensForTokens: async () => {},
   getAmountsOut: async () => "0",
-  addLiquidity: async () => {},
-  removeLiquidity: async () => {},
+  stakeRiskTokens: async () => {},
+  unstakeRiskTokens: async () => {},
   getPairReserves: async () => ({ reserve0: 0n, reserve1: 0n }),
   getTokenBalance: async () => 0n,
 });
@@ -1032,7 +1033,7 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
-  const addLiquidity = async (tokenAAmount: string, tokenBAmount: string, tokenA: string, tokenB: string) => {
+  const stakeRiskTokens = async (tokenAAmount: string, tokenBAmount: string, tokenA: string, tokenB: string) => {
     if (!signer || !address) {
       toast.error('Please connect your wallet');
       return;
@@ -1092,7 +1093,7 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
         await approveTx.wait();
       }
 
-      // Add liquidity
+      // Stake risk tokens
       const router = new Contract(routerAddress, UNISWAP_V2_ROUTER_ABI, signer);
       const tx = await router.addLiquidity(
         tokenA,
@@ -1105,28 +1106,28 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
         deadline,
       );
 
-      toast.info('Adding liquidity...');
+      toast.info('Staking risk tokens...');
       await tx.wait();
-      toast.success('Liquidity added');
+      toast.success('Risk tokens staked');
       
       await refreshData();
     } catch (error: any) {
-      console.error('Failed to add liquidity:', error);
-      toast.error(error.reason || 'Failed to add liquidity');
+      console.error('Failed to stake risk tokens:', error);
+      toast.error(error.reason || 'Failed to stake risk tokens');
     }
   };
 
-  const removeLiquidity = async (lpTokenAmount: string, tokenA: string, tokenB: string) => {
+  const unstakeRiskTokens = async (stakedTokenAmount: string, tokenA: string, tokenB: string) => {
     if (!signer || !address) {
       toast.error('Please connect your wallet');
       return;
     }
 
     try {
-      const lpAmountWei = ethers.parseEther(lpTokenAmount);
+      const stakedAmountWei = ethers.parseEther(stakedTokenAmount);
       const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20 minutes
 
-      // Approve LP tokens
+      // Approve staked tokens
       const pairAddress = getCurrentChainAddress(ContractName.SENIOR_JUNIOR_PAIR);
       const routerAddress = getCurrentChainAddress(ContractName.UNISWAP_V2_ROUTER);
 
@@ -1138,32 +1139,32 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
       const pairContract = new Contract(pairAddress, ERC20_ABI, signer);
       const allowance = await pairContract.allowance(address, routerAddress);
 
-      if (allowance < lpAmountWei) {
-        const approveTx = await pairContract.approve(routerAddress, lpAmountWei);
-        toast.info('Approving LP tokens...');
+      if (allowance < stakedAmountWei) {
+        const approveTx = await pairContract.approve(routerAddress, stakedAmountWei);
+        toast.info('Approving Staked tokens...');
         await approveTx.wait();
       }
 
-      // Remove liquidity
+      // Unstake risk tokens
       const router = new Contract(routerAddress, UNISWAP_V2_ROUTER_ABI, signer);
       const tx = await router.removeLiquidity(
         tokenA,
         tokenB,
-        lpAmountWei,
+        stakedAmountWei,
         0, // amountAMin (accept any amount)
         0, // amountBMin (accept any amount)
         address,
         deadline,
       );
 
-      toast.info('Removing liquidity...');
+      toast.info('Unstaking risk tokens...');
       await tx.wait();
-      toast.success('Liquidity removed');
+      toast.success('Risk tokens unstaked');
       
       await refreshData();
     } catch (error: any) {
-      console.error('Failed to remove liquidity:', error);
-      toast.error(error.reason || 'Failed to remove liquidity');
+      console.error('Failed to unstake risk tokens:', error);
+      toast.error(error.reason || 'Failed to unstake risk tokens');
     }
   };
 
@@ -1225,8 +1226,8 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
     swapExactTokensForTokens,
     getAmountsOut,
     getTokenBalance,
-    addLiquidity,
-    removeLiquidity,
+    stakeRiskTokens,
+    unstakeRiskTokens,
     getPairReserves,
   };
 

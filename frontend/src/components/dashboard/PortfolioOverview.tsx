@@ -113,8 +113,8 @@ const PortfolioOverview: React.FC<PortfolioOverviewProps> = ({
                 <div className="flex items-center space-x-3">
                   <Droplets className="w-6 h-6 text-purple-400" />
                   <div>
-                    <p className="text-white font-semibold">LP Tokens</p>
-                    <p className="text-xs text-slate-300">Liquidity provider rewards</p>
+                    <p className="text-white font-semibold">Staked Tokens</p>
+                    <p className="text-xs text-slate-300">Risk token staking rewards</p>
                   </div>
                 </div>
                 <div className="text-right">

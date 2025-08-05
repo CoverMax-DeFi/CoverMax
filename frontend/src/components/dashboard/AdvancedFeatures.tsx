@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  Droplets,
   Minus,
   RefreshCw,
   Info,
@@ -19,8 +18,8 @@ interface AdvancedFeaturesProps {
   formatNumber: (num: number, decimals?: number) => string;
   isExecuting: boolean;
   vaultInfo: { emergencyMode: boolean };
-  onAddLiquidity: (seniorAmount: string, juniorAmount: string) => void;
-  onRemoveLiquidity: (amount: string) => void;
+  onStakeRiskTokens: (seniorAmount: string, juniorAmount: string) => void;
+  onUnstakeRiskTokens: (amount: string) => void;
   onEmergencyWithdraw: (amount: string, asset: 'aUSDC' | 'cUSDT') => void;
 }
 
@@ -31,27 +30,27 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
   formatNumber,
   isExecuting,
   vaultInfo,
-  onAddLiquidity,
-  onRemoveLiquidity,
+  onStakeRiskTokens,
+  onUnstakeRiskTokens,
   onEmergencyWithdraw,
 }) => {
-  const [liquiditySeniorAmount, setLiquiditySeniorAmount] = useState('');
-  const [liquidityJuniorAmount, setLiquidityJuniorAmount] = useState('');
-  const [removeLiquidityAmount, setRemoveLiquidityAmount] = useState('');
+  const [stakingSeniorAmount, setStakingSeniorAmount] = useState('');
+  const [stakingJuniorAmount, setStakingJuniorAmount] = useState('');
+  const [unstakeAmount, setUnstakeAmount] = useState('');
   const [emergencyAmount, setEmergencyAmount] = useState('');
   const [preferredAsset, setPreferredAsset] = useState<'aUSDC' | 'cUSDT'>('aUSDC');
 
-  const handleAddLiquidity = () => {
-    if (!liquiditySeniorAmount || !liquidityJuniorAmount) return;
-    onAddLiquidity(liquiditySeniorAmount, liquidityJuniorAmount);
-    setLiquiditySeniorAmount('');
-    setLiquidityJuniorAmount('');
+  const handleStakeRiskTokens = () => {
+    if (!stakingSeniorAmount || !stakingJuniorAmount) return;
+    onStakeRiskTokens(stakingSeniorAmount, stakingJuniorAmount);
+    setStakingSeniorAmount('');
+    setStakingJuniorAmount('');
   };
 
-  const handleRemoveLiquidity = () => {
-    if (!removeLiquidityAmount) return;
-    onRemoveLiquidity(removeLiquidityAmount);
-    setRemoveLiquidityAmount('');
+  const handleUnstakeRiskTokens = () => {
+    if (!unstakeAmount) return;
+    onUnstakeRiskTokens(unstakeAmount);
+    setUnstakeAmount('');
   };
 
   const handleEmergencyWithdraw = () => {
@@ -60,11 +59,11 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
     setEmergencyAmount('');
   };
 
-  const handleOptimalLiquidity = () => {
+  const handleOptimalStaking = () => {
     // Use equal amounts for simplicity - could be enhanced with pool ratio logic
     const maxAmount = Math.min(seniorBalance, juniorBalance);
-    setLiquiditySeniorAmount(maxAmount.toFixed(6));
-    setLiquidityJuniorAmount(maxAmount.toFixed(6));
+    setStakingSeniorAmount(maxAmount.toFixed(6));
+    setStakingJuniorAmount(maxAmount.toFixed(6));
   };
 
   return (
@@ -89,7 +88,7 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
           </div>
 
           <Button
-            onClick={handleOptimalLiquidity}
+            onClick={handleOptimalStaking}
             disabled={seniorBalance <= 0 && juniorBalance <= 0}
             className="w-full bg-blue-600/20 border border-blue-500 text-blue-300 hover:bg-blue-600/30"
           >
@@ -102,8 +101,8 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
               <Input
                 type="number"
                 placeholder="0.0"
-                value={liquiditySeniorAmount}
-                onChange={(e) => setLiquiditySeniorAmount(e.target.value)}
+                value={stakingSeniorAmount}
+                onChange={(e) => setStakingSeniorAmount(e.target.value)}
                 className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
               />
               <p className="text-sm text-slate-400 mt-1">
@@ -116,8 +115,8 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
               <Input
                 type="number"
                 placeholder="0.0"
-                value={liquidityJuniorAmount}
-                onChange={(e) => setLiquidityJuniorAmount(e.target.value)}
+                value={stakingJuniorAmount}
+                onChange={(e) => setStakingJuniorAmount(e.target.value)}
                 className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
               />
               <p className="text-sm text-slate-400 mt-1">
@@ -126,7 +125,7 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
             </div>
           </div>
 
-          {liquiditySeniorAmount && liquidityJuniorAmount && (
+          {stakingSeniorAmount && stakingJuniorAmount && (
             <Alert className="bg-slate-700/50 border-slate-600 text-slate-300">
               <Info className="h-4 w-4" />
               <AlertDescription>
@@ -136,8 +135,8 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
           )}
 
           <Button
-            onClick={handleAddLiquidity}
-            disabled={!liquiditySeniorAmount || !liquidityJuniorAmount || parseFloat(liquiditySeniorAmount) <= 0 || parseFloat(liquidityJuniorAmount) <= 0 || isExecuting}
+            onClick={handleStakeRiskTokens}
+            disabled={!stakingSeniorAmount || !stakingJuniorAmount || parseFloat(stakingSeniorAmount) <= 0 || parseFloat(stakingJuniorAmount) <= 0 || isExecuting}
             className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
           >
             {isExecuting ? (
@@ -178,8 +177,8 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
             <Input
               type="number"
               placeholder="0.0"
-              value={removeLiquidityAmount}
-              onChange={(e) => setRemoveLiquidityAmount(e.target.value)}
+              value={unstakeAmount}
+              onChange={(e) => setUnstakeAmount(e.target.value)}
               className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
             />
             <p className="text-sm text-slate-400 mt-1">
@@ -187,7 +186,7 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
             </p>
           </div>
 
-          {removeLiquidityAmount && parseFloat(removeLiquidityAmount) > 0 && (
+          {unstakeAmount && parseFloat(unstakeAmount) > 0 && (
             <Alert className="bg-slate-700/50 border-slate-600 text-slate-300">
               <Info className="h-4 w-4" />
               <AlertDescription>
@@ -197,8 +196,8 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
           )}
 
           <Button
-            onClick={handleRemoveLiquidity}
-            disabled={!removeLiquidityAmount || parseFloat(removeLiquidityAmount) <= 0 || isExecuting}
+            onClick={handleUnstakeRiskTokens}
+            disabled={!unstakeAmount || parseFloat(unstakeAmount) <= 0 || isExecuting}
             className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700"
           >
             {isExecuting ? (
