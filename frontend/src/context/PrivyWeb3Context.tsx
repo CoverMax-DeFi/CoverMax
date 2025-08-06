@@ -369,16 +369,77 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
 
       const vaultContract = new Contract(vaultAddress, RISK_VAULT_ABI, provider);
       
-      // Get token addresses
-      const [seniorAddr, juniorAddr] = await Promise.all([
+      // Get all contract addresses upfront
+      const aUSDCAddress = getContractAddress(chainId, ContractName.MOCK_AUSDC);
+      const cUSDTAddress = getContractAddress(chainId, ContractName.MOCK_CUSDT);
+      const pairAddress = getContractAddress(chainId, ContractName.SENIOR_JUNIOR_PAIR);
+      
+      if (!aUSDCAddress || !cUSDTAddress || !pairAddress) {
+        console.warn('Some token contracts not available on current chain');
+        return;
+      }
+      
+      // Create all contract instances
+      const aUSDCContract = new Contract(aUSDCAddress, ERC20_ABI, provider);
+      const cUSDTContract = new Contract(cUSDTAddress, ERC20_ABI, provider);
+      const pairContract = new Contract(pairAddress, ERC20_ABI, provider);
+      
+      const userAddress = await signer.getAddress();
+      
+      console.log('🚀 Loading all contract data in parallel...');
+      
+      // Fetch EVERYTHING in one massive parallel call for maximum speed on initial load
+      const [
+        seniorAddr,
+        juniorAddr,
+        protocolStatus,
+        phaseInfo,
+        vaultBalances,
+        userTokenBalancesResult,
+        aUSDCBalance,
+        cUSDTBalance,
+        lpBalance,
+      ] = await Promise.all([
+        // Token addresses
         vaultContract.seniorToken(),
         vaultContract.juniorToken(),
+        // Vault contract calls
+        vaultContract.getProtocolStatus(),
+        vaultContract.getPhaseInfo(),
+        vaultContract.getVaultBalances(),
+        vaultContract.getUserTokenBalances(userAddress),
+        // Token balance calls
+        aUSDCContract.balanceOf(userAddress),
+        cUSDTContract.balanceOf(userAddress),
+        pairContract.balanceOf(userAddress),
       ]);
+      
+      console.log('✅ All initial data loaded successfully');
+      
+      // Set token addresses
       setSeniorTokenAddress(seniorAddr);
       setJuniorTokenAddress(juniorAddr);
       
-      // Load balances and vault info
-      await refreshData();
+      // Update vault info
+      setVaultInfo({
+        aUSDCBalance: vaultBalances.aUSDCVaultBalance,
+        cUSDTBalance: vaultBalances.cUSDTVaultBalance,
+        totalTokensIssued: protocolStatus.totalTokens,
+        emergencyMode: protocolStatus.emergency,
+        currentPhase: protocolStatus.phase,
+        phaseStartTime: phaseInfo.phaseStart,
+        cycleStartTime: phaseInfo.cycleStart,
+        timeRemaining: phaseInfo.timeRemaining,
+      });
+      
+      // Update balances
+      setBalances({
+        seniorTokens: userTokenBalancesResult.seniorBalance,
+        juniorTokens: userTokenBalancesResult.juniorBalance,
+        aUSDC: aUSDCBalance,
+        cUSDT: cUSDTBalance,
+        lpTokens: lpBalance,
+      });
     } catch (error) {
       console.error('Error loading contract data:', error);
       toast.error('Failed to load contract data for this network');
