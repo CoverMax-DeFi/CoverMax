@@ -358,7 +358,7 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
     setupNetworkListener();
   }, [ready, authenticated, wallets, logout]);
 
-  // Load contract data
+  // Load contract data (initial load with token addresses)
   const loadContractData = async (provider: BrowserProvider, signer: Signer, chainId: SupportedChainId) => {
     try {
       const vaultAddress = getContractAddress(chainId, ContractName.RISK_VAULT);
@@ -369,29 +369,53 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
 
       const vaultContract = new Contract(vaultAddress, RISK_VAULT_ABI, provider);
       
-      // Get all contract addresses upfront
-      const aUSDCAddress = getContractAddress(chainId, ContractName.MOCK_AUSDC);
-      const cUSDTAddress = getContractAddress(chainId, ContractName.MOCK_CUSDT);
-      const pairAddress = getContractAddress(chainId, ContractName.SENIOR_JUNIOR_PAIR);
+      // Get token addresses first (needed for subsequent operations)
+      console.log('📝 Fetching token addresses...');
+      const [seniorAddr, juniorAddr] = await Promise.all([
+        vaultContract.seniorToken(),
+        vaultContract.juniorToken(),
+      ]);
       
-      if (!aUSDCAddress || !cUSDTAddress || !pairAddress) {
-        console.warn('Some token contracts not available on current chain');
-        return;
-      }
+      // Set token addresses for use in other functions
+      setSeniorTokenAddress(seniorAddr);
+      setJuniorTokenAddress(juniorAddr);
       
-      // Create all contract instances
-      const aUSDCContract = new Contract(aUSDCAddress, ERC20_ABI, provider);
-      const cUSDTContract = new Contract(cUSDTAddress, ERC20_ABI, provider);
-      const pairContract = new Contract(pairAddress, ERC20_ABI, provider);
-      
-      const userAddress = await signer.getAddress();
-      
-      console.log('🚀 Loading all contract data in parallel...');
-      
-      // Fetch EVERYTHING in one massive parallel call for maximum speed on initial load
+      // Now fetch all the data using the common refresh logic
+      await refreshDataInternal(provider, signer, await signer.getAddress(), chainId);
+    } catch (error) {
+      console.error('Error loading contract data:', error);
+      toast.error('Failed to load contract data for this network');
+    }
+  };
+  
+  // Internal refresh function that can be called by both loadContractData and refreshData
+  const refreshDataInternal = async (
+    provider: BrowserProvider, 
+    signer: Signer, 
+    userAddress: string, 
+    chainId: SupportedChainId
+  ) => {
+    const vaultAddress = getContractAddress(chainId, ContractName.RISK_VAULT);
+    const aUSDCAddress = getContractAddress(chainId, ContractName.MOCK_AUSDC);
+    const cUSDTAddress = getContractAddress(chainId, ContractName.MOCK_CUSDT);
+    const pairAddress = getContractAddress(chainId, ContractName.SENIOR_JUNIOR_PAIR);
+    
+    if (!vaultAddress || !aUSDCAddress || !cUSDTAddress || !pairAddress) {
+      console.warn('Some contracts not available on current chain');
+      return;
+    }
+    
+    // Create all contract instances
+    const vaultContract = new Contract(vaultAddress, RISK_VAULT_ABI, provider);
+    const aUSDCContract = new Contract(aUSDCAddress, ERC20_ABI, provider);
+    const cUSDTContract = new Contract(cUSDTAddress, ERC20_ABI, provider);
+    const pairContract = new Contract(pairAddress, ERC20_ABI, provider);
+    
+    console.log('📊 Fetching all data in parallel...');
+    
+    try {
+      // Fetch ALL data in a single parallel call for maximum speed
       const [
-        seniorAddr,
-        juniorAddr,
         protocolStatus,
         phaseInfo,
         vaultBalances,
@@ -400,9 +424,6 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
         cUSDTBalance,
         lpBalance,
       ] = await Promise.all([
-        // Token addresses
-        vaultContract.seniorToken(),
-        vaultContract.juniorToken(),
         // Vault contract calls
         vaultContract.getProtocolStatus(),
         vaultContract.getPhaseInfo(),
@@ -414,11 +435,7 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
         pairContract.balanceOf(userAddress),
       ]);
       
-      console.log('✅ All initial data loaded successfully');
-      
-      // Set token addresses
-      setSeniorTokenAddress(seniorAddr);
-      setJuniorTokenAddress(juniorAddr);
+      console.log('✅ All data fetched successfully in parallel');
       
       // Update vault info
       setVaultInfo({
@@ -441,8 +458,16 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
         lpTokens: lpBalance,
       });
     } catch (error) {
-      console.error('Error loading contract data:', error);
-      toast.error('Failed to load contract data for this network');
+      if (error.code === 'NETWORK_ERROR') {
+        console.log('🔄 Network change detected, skipping...');
+        return;
+      }
+      if (error.code === 'CALL_EXCEPTION' && chainId === 296) {
+        console.log('⚠️ Hedera RPC issue detected, skipping...');
+        return;
+      }
+      console.error('❌ Data fetch failed:', error);
+      throw error;
     }
   };
 
@@ -524,88 +549,7 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
     console.log(`🔄 Refreshing data for chain ${currentChain} (${getChainConfig(currentChain)?.chainName})`);
     
     try {
-      const vaultAddress = getCurrentChainAddress(ContractName.RISK_VAULT);
-      if (!vaultAddress) {
-        console.warn('Risk vault not available on current chain');
-        return;
-      }
-
-      console.log(`📄 Using vault contract at: ${vaultAddress}`);
-      const vaultContract = new Contract(vaultAddress, RISK_VAULT_ABI, provider);
-      
-      // Get all contract addresses upfront for parallel fetching
-      const aUSDCAddress = getCurrentChainAddress(ContractName.MOCK_AUSDC);
-      const cUSDTAddress = getCurrentChainAddress(ContractName.MOCK_CUSDT);
-      const pairAddress = getCurrentChainAddress(ContractName.SENIOR_JUNIOR_PAIR);
-
-      if (!aUSDCAddress || !cUSDTAddress || !pairAddress) {
-        console.warn('Some token contracts not available on current chain');
-        return;
-      }
-
-      // Create all contract instances
-      const aUSDCContract = new Contract(aUSDCAddress, ERC20_ABI, provider);
-      const cUSDTContract = new Contract(cUSDTAddress, ERC20_ABI, provider);
-      const pairContract = new Contract(pairAddress, ERC20_ABI, provider);
-      
-      console.log('📊 Fetching all data in parallel...');
-      
-      try {
-        // Fetch ALL data in a single parallel call for maximum speed
-        const [
-          protocolStatus,
-          phaseInfo,
-          vaultBalances,
-          userTokenBalancesResult,
-          aUSDCBalance,
-          cUSDTBalance,
-          lpBalance,
-        ] = await Promise.all([
-          // Vault contract calls
-          vaultContract.getProtocolStatus(),
-          vaultContract.getPhaseInfo(),
-          vaultContract.getVaultBalances(),
-          vaultContract.getUserTokenBalances(address),
-          // Token balance calls
-          aUSDCContract.balanceOf(address),
-          cUSDTContract.balanceOf(address),
-          pairContract.balanceOf(address),
-        ]);
-        
-        console.log('✅ All data fetched successfully in parallel');
-        
-        // Update vault info
-        setVaultInfo({
-          aUSDCBalance: vaultBalances.aUSDCVaultBalance,
-          cUSDTBalance: vaultBalances.cUSDTVaultBalance,
-          totalTokensIssued: protocolStatus.totalTokens,
-          emergencyMode: protocolStatus.emergency,
-          currentPhase: protocolStatus.phase,
-          phaseStartTime: phaseInfo.phaseStart,
-          cycleStartTime: phaseInfo.cycleStart,
-          timeRemaining: phaseInfo.timeRemaining,
-        });
-        
-        // Update balances
-        setBalances({
-          seniorTokens: userTokenBalancesResult.seniorBalance,
-          juniorTokens: userTokenBalancesResult.juniorBalance,
-          aUSDC: aUSDCBalance,
-          cUSDT: cUSDTBalance,
-          lpTokens: lpBalance,
-        });
-      } catch (error) {
-        if (error.code === 'NETWORK_ERROR') {
-          console.log('🔄 Network change detected, skipping...');
-          return;
-        }
-        if (error.code === 'CALL_EXCEPTION' && currentChain === 296) {
-          console.log('⚠️ Hedera RPC issue detected, skipping...');
-          return;
-        }
-        console.error('❌ Data fetch failed:', error);
-        throw error;
-      }
+      await refreshDataInternal(provider, signer, address, currentChain);
     } catch (error) {
       if (error.code === 'NETWORK_ERROR') {
         console.log('🔄 Network change detected in main refresh, skipping...');
@@ -627,7 +571,7 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
     } finally {
       isRefreshing.current = false;
     }
-  }, [provider, signer, address, currentChain, getCurrentChainAddress]);
+  }, [provider, signer, address, currentChain]);
 
   // Approve token spending
   const approveToken = async (tokenAddress: string, amount: string) => {
