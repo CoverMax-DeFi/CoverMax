@@ -155,12 +155,6 @@ const DepositStrategies: React.FC<DepositStrategiesProps> = ({
             />
             <div className="flex justify-between mt-2 text-sm text-slate-300">
               <span className="font-medium">Available: {formatNumber(selectedAsset === 'aUSDC' ? aUSDCBalance : cUSDTBalance, 2)}</span>
-              <button
-                onClick={() => setAmount((selectedAsset === 'aUSDC' ? aUSDCBalance : cUSDTBalance).toString())}
-                className="text-blue-400 hover:text-blue-300 font-medium"
-              >
-                Max
-              </button>
             </div>
           </div>
         </div>
