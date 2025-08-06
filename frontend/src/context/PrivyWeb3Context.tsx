@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import { PrivyProvider, usePrivy, useWallets } from '@privy-io/react-auth';
 import { ethers, BrowserProvider, Contract, Signer } from 'ethers';
 import { toast } from '@/components/ui/sonner';
@@ -206,6 +206,10 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
   
   const [seniorTokenAddress, setSeniorTokenAddress] = useState<string | null>(null);
   const [juniorTokenAddress, setJuniorTokenAddress] = useState<string | null>(null);
+  
+  // Add ref to track last refresh time for debouncing
+  const lastRefreshTime = useRef<number>(0);
+  const isRefreshing = useRef<boolean>(false);
 
   // Initial state values for cleanup
   const initialBalances: TokenBalances = {
@@ -432,10 +436,27 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
       return;
     }
     
+    // Debounce rapid refresh calls (minimum 500ms between refreshes)
+    const now = Date.now();
+    if (now - lastRefreshTime.current < 500) {
+      console.log('⏱️ Skipping refresh - too soon since last refresh');
+      return;
+    }
+    
+    // Prevent concurrent refreshes
+    if (isRefreshing.current) {
+      console.log('⏸️ Skipping refresh - already refreshing');
+      return;
+    }
+    
+    isRefreshing.current = true;
+    lastRefreshTime.current = now;
+    
     // Check if network is consistent before proceeding
     const networkChainId = await provider.getNetwork().then(n => Number(n.chainId)).catch(() => null);
     if (networkChainId && networkChainId !== currentChain) {
       console.log(`⚠️ Network mismatch detected: provider=${networkChainId}, context=${currentChain}. Skipping refresh.`);
+      isRefreshing.current = false;
       return;
     }
     
@@ -451,25 +472,48 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
       console.log(`📄 Using vault contract at: ${vaultAddress}`);
       const vaultContract = new Contract(vaultAddress, RISK_VAULT_ABI, provider);
       
-      // Get vault info with detailed logging
-      console.log('📊 Fetching vault contract data...');
-      let userTokenBalances: any;
+      // Get all contract addresses upfront for parallel fetching
+      const aUSDCAddress = getCurrentChainAddress(ContractName.MOCK_AUSDC);
+      const cUSDTAddress = getCurrentChainAddress(ContractName.MOCK_CUSDT);
+      const pairAddress = getCurrentChainAddress(ContractName.SENIOR_JUNIOR_PAIR);
+
+      if (!aUSDCAddress || !cUSDTAddress || !pairAddress) {
+        console.warn('Some token contracts not available on current chain');
+        return;
+      }
+
+      // Create all contract instances
+      const aUSDCContract = new Contract(aUSDCAddress, ERC20_ABI, provider);
+      const cUSDTContract = new Contract(cUSDTAddress, ERC20_ABI, provider);
+      const pairContract = new Contract(pairAddress, ERC20_ABI, provider);
+      
+      console.log('📊 Fetching all data in parallel...');
+      
       try {
+        // Fetch ALL data in a single parallel call for maximum speed
         const [
           protocolStatus,
           phaseInfo,
           vaultBalances,
           userTokenBalancesResult,
+          aUSDCBalance,
+          cUSDTBalance,
+          lpBalance,
         ] = await Promise.all([
+          // Vault contract calls
           vaultContract.getProtocolStatus(),
           vaultContract.getPhaseInfo(),
           vaultContract.getVaultBalances(),
           vaultContract.getUserTokenBalances(address),
+          // Token balance calls
+          aUSDCContract.balanceOf(address),
+          cUSDTContract.balanceOf(address),
+          pairContract.balanceOf(address),
         ]);
         
-        userTokenBalances = userTokenBalancesResult;
-        console.log('✅ Vault contract data fetched successfully');
+        console.log('✅ All data fetched successfully in parallel');
         
+        // Update vault info
         setVaultInfo({
           aUSDCBalance: vaultBalances.aUSDCVaultBalance,
           cUSDTBalance: vaultBalances.cUSDTVaultBalance,
@@ -480,73 +524,36 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
           cycleStartTime: phaseInfo.cycleStart,
           timeRemaining: phaseInfo.timeRemaining,
         });
-      } catch (vaultError) {
-        if (vaultError.code === 'NETWORK_ERROR') {
-          console.log('🔄 Network change detected in vault calls, skipping...');
-          return;
-        }
-        if (vaultError.code === 'CALL_EXCEPTION' && currentChain === 296) {
-          console.log('⚠️ Hedera RPC issue detected in vault calls, skipping...');
-          return;
-        }
-        console.error('❌ Vault contract calls failed:', vaultError);
-        throw vaultError;
-      }
-      
-      // Get user token balances
-      const aUSDCAddress = getCurrentChainAddress(ContractName.MOCK_AUSDC);
-      const cUSDTAddress = getCurrentChainAddress(ContractName.MOCK_CUSDT);
-      const pairAddress = getCurrentChainAddress(ContractName.SENIOR_JUNIOR_PAIR);
-
-      if (!aUSDCAddress || !cUSDTAddress || !pairAddress) {
-        console.warn('Some token contracts not available on current chain');
-        return;
-      }
-
-      console.log(`💰 Fetching token balances...`);
-      console.log(`  aUSDC: ${aUSDCAddress}`);
-      console.log(`  cUSDT: ${cUSDTAddress}`);
-      console.log(`  Pair: ${pairAddress}`);
-
-      const aUSDCContract = new Contract(aUSDCAddress, ERC20_ABI, provider);
-      const cUSDTContract = new Contract(cUSDTAddress, ERC20_ABI, provider);
-      const pairContract = new Contract(pairAddress, ERC20_ABI, provider);
-      
-      try {
-        const [aUSDCBalance, cUSDTBalance, lpBalance] = await Promise.all([
-          aUSDCContract.balanceOf(address),
-          cUSDTContract.balanceOf(address),
-          pairContract.balanceOf(address),
-        ]);
         
-        console.log('✅ Token balances fetched successfully');
-        
+        // Update balances
         setBalances({
-          seniorTokens: userTokenBalances.seniorBalance,
-          juniorTokens: userTokenBalances.juniorBalance,
+          seniorTokens: userTokenBalancesResult.seniorBalance,
+          juniorTokens: userTokenBalancesResult.juniorBalance,
           aUSDC: aUSDCBalance,
           cUSDT: cUSDTBalance,
           lpTokens: lpBalance,
         });
-      } catch (tokenError) {
-        if (tokenError.code === 'NETWORK_ERROR') {
-          console.log('🔄 Network change detected in token calls, skipping...');
+      } catch (error) {
+        if (error.code === 'NETWORK_ERROR') {
+          console.log('🔄 Network change detected, skipping...');
           return;
         }
-        if (tokenError.code === 'CALL_EXCEPTION' && currentChain === 296) {
-          console.log('⚠️ Hedera RPC issue detected in token calls, skipping...');
+        if (error.code === 'CALL_EXCEPTION' && currentChain === 296) {
+          console.log('⚠️ Hedera RPC issue detected, skipping...');
           return;
         }
-        console.error('❌ Token balance calls failed:', tokenError);
-        throw tokenError;
+        console.error('❌ Data fetch failed:', error);
+        throw error;
       }
     } catch (error) {
       if (error.code === 'NETWORK_ERROR') {
         console.log('🔄 Network change detected in main refresh, skipping...');
+        isRefreshing.current = false;
         return;
       }
       if (error.code === 'CALL_EXCEPTION' && currentChain === 296) {
         console.log('⚠️ Hedera RPC rate limiting detected, skipping refresh...');
+        isRefreshing.current = false;
         return;
       }
       console.error('💥 Error refreshing data on chain', currentChain, ':', error);
@@ -556,6 +563,8 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
         reason: error.reason
       });
       toast.error(`Failed to refresh data on ${getChainConfig(currentChain)?.chainName || 'unknown network'}`);
+    } finally {
+      isRefreshing.current = false;
     }
   }, [provider, signer, address, currentChain, getCurrentChainAddress]);
 

@@ -6,12 +6,10 @@ import {
   Shield,
   TrendingUp,
   Zap,
-  Activity,
   Settings,
   Droplets,
   Plus,
   BarChart3,
-  ExternalLink,
 } from 'lucide-react';
 
 interface VaultInfo {
