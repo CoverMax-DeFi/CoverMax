@@ -98,27 +98,49 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-slate-200 font-medium mb-2 block">SENIOR Amount</Label>
-              <Input
-                type="number"
-                placeholder="0.0"
-                value={stakingSeniorAmount}
-                onChange={(e) => setStakingSeniorAmount(e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
-              />
+              <div className="relative">
+                <Input
+                  type="number"
+                  placeholder="0.0"
+                  value={stakingSeniorAmount}
+                  onChange={(e) => setStakingSeniorAmount(e.target.value)}
+                  className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400 pr-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 px-2 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                  onClick={() => setStakingSeniorAmount(seniorBalance.toString())}
+                >
+                  Max
+                </Button>
+              </div>
               <p className="text-sm text-slate-400 mt-1">
                 Balance: {formatNumber(seniorBalance)}
               </p>
             </div>
-            
+
             <div>
               <Label className="text-slate-200 font-medium mb-2 block">JUNIOR Amount</Label>
-              <Input
-                type="number"
-                placeholder="0.0"
-                value={stakingJuniorAmount}
-                onChange={(e) => setStakingJuniorAmount(e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
-              />
+              <div className="relative">
+                <Input
+                  type="number"
+                  placeholder="0.0"
+                  value={stakingJuniorAmount}
+                  onChange={(e) => setStakingJuniorAmount(e.target.value)}
+                  className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400 pr-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 px-2 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                  onClick={() => setStakingJuniorAmount(juniorBalance.toString())}
+                >
+                  Max
+                </Button>
+              </div>
               <p className="text-sm text-slate-400 mt-1">
                 Balance: {formatNumber(juniorBalance)}
               </p>
@@ -174,13 +196,24 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
 
           <div className="space-y-2">
             <Label className="text-slate-200 font-medium">Amount to Unstake</Label>
-            <Input
-              type="number"
-              placeholder="0.0"
-              value={unstakeAmount}
-              onChange={(e) => setUnstakeAmount(e.target.value)}
-              className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
-            />
+            <div className="relative">
+              <Input
+                type="number"
+                placeholder="0.0"
+                value={unstakeAmount}
+                onChange={(e) => setUnstakeAmount(e.target.value)}
+                className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400 pr-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-6 px-2 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                onClick={() => setUnstakeAmount(lpBalance.toString())}
+              >
+                Max
+              </Button>
+            </div>
             <p className="text-sm text-slate-400 mt-1">
               Staked Balance: {formatNumber(lpBalance)}
             </p>
@@ -225,14 +258,25 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="emergency-amount" className="text-slate-300 font-medium mb-2 block">CM-SENIOR Amount</Label>
-                <Input
-                  id="emergency-amount"
-                  type="number"
-                  placeholder="0.0"
-                  value={emergencyAmount}
-                  onChange={(e) => setEmergencyAmount(e.target.value)}
-                  className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
-                />
+                <div className="relative">
+                  <Input
+                    id="emergency-amount"
+                    type="number"
+                    placeholder="0.0"
+                    value={emergencyAmount}
+                    onChange={(e) => setEmergencyAmount(e.target.value)}
+                    className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400 pr-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-6 px-2 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                    onClick={() => setEmergencyAmount(seniorBalance.toString())}
+                  >
+                    Max
+                  </Button>
+                </div>
               </div>
               <div>
                 <Label className="text-slate-300 mb-2 block font-medium">Preferred Asset</Label>
@@ -266,7 +310,7 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
                 </div>
               </div>
             </div>
-            <Button 
+            <Button
               onClick={handleEmergencyWithdraw}
               disabled={!emergencyAmount || isExecuting}
               variant="destructive"

@@ -146,13 +146,24 @@ const DepositStrategies: React.FC<DepositStrategiesProps> = ({
 
           <div>
             <Label className="text-slate-200 mb-2 block font-medium">Deposit Amount</Label>
-            <Input
-              type="number"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="bg-slate-700/50 border-slate-600 text-white"
-            />
+            <div className="relative">
+              <Input
+                type="number"
+                placeholder="0.00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="bg-slate-700/50 border-slate-600 text-white pr-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-6 px-2 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                onClick={() => setAmount((selectedAsset === 'aUSDC' ? aUSDCBalance : cUSDTBalance).toString())}
+              >
+                Max
+              </Button>
+            </div>
             <div className="flex justify-between mt-2 text-sm text-slate-300">
               <span className="font-medium">Available: {formatNumber(selectedAsset === 'aUSDC' ? aUSDCBalance : cUSDTBalance, 2)}</span>
             </div>

@@ -109,8 +109,8 @@ const PositionManagement: React.FC<PositionManagementProps> = ({
                   variant={targetSeniorPercent === percent ? "default" : "outline"}
                   size="sm"
                   className={`${
-                    targetSeniorPercent === percent 
-                      ? "bg-blue-600 text-white" 
+                    targetSeniorPercent === percent
+                      ? "bg-blue-600 text-white"
                       : "border-slate-600 bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-700"
                   } text-xs sm:text-sm min-h-[2.5rem]`}
                   onClick={() => handleRebalancePreview(percent)}
@@ -216,21 +216,32 @@ const PositionManagement: React.FC<PositionManagementProps> = ({
               <Label htmlFor="withdraw-amount" className="text-slate-200 font-medium">
                 Target Amount ({selectedWithdrawAsset})
               </Label>
-              <Input
-                id="withdraw-amount"
-                type="number"
-                placeholder="0.0"
-                value={withdrawAssetAmount}
-                onChange={(e) => setWithdrawAssetAmount(e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400"
-              />
+              <div className="relative">
+                <Input
+                  id="withdraw-amount"
+                  type="number"
+                  placeholder="0.0"
+                  value={withdrawAssetAmount}
+                  onChange={(e) => setWithdrawAssetAmount(e.target.value)}
+                  className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400 pr-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 px-2 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                  onClick={() => setWithdrawAssetAmount(totalPortfolioValue.toString())}
+                >
+                  Max
+                </Button>
+              </div>
               <div className="text-sm text-slate-300 font-medium mt-1">
                 Max withdrawable: ${formatNumber(totalPortfolioValue)}
               </div>
             </div>
           )}
 
-          <Button 
+          <Button
             onClick={handleWithdrawExecute}
             disabled={!selectedWithdrawAsset || !withdrawAssetAmount || parseFloat(withdrawAssetAmount) <= 0 || isExecuting}
             className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white"
