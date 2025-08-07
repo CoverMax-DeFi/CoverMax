@@ -752,15 +752,18 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Deposit Phase Check */}
-        {Number(vaultInfo.currentPhase) !== Phase.DEPOSIT && (
-          <Alert className="bg-slate-700/50 border-slate-600 text-slate-300">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Betting is only allowed during the Deposit phase. Current phase: {vaultInfo.currentPhase !== undefined ? Phase[vaultInfo.currentPhase] : 'Loading...'}
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Protocol Status */}
+        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span className="text-green-400 text-sm font-medium">
+              Protocol Active - Live Betting Available
+            </span>
+            <span className="text-slate-400 text-xs ml-auto">
+              Phase: {vaultInfo.currentPhase !== undefined ? Phase[vaultInfo.currentPhase] : 'Loading...'}
+            </span>
+          </div>
+        </div>
 
         {/* Question */}
         <div className="text-center">
@@ -895,7 +898,6 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
           <button
             onClick={() => handleBetSelection('hack')}
             className={`p-4 rounded-lg border-2 transition-all relative ${getBetColorClass('hack')}`}
-            disabled={Number(vaultInfo.currentPhase) !== Phase.DEPOSIT}
           >
             {aiAnalysis?.recommendation === 'hack' && showAIAnalysis && (
               <div className="absolute -top-2 -right-2 bg-purple-500 rounded-full p-1">
@@ -917,7 +919,6 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
           <button
             onClick={() => handleBetSelection('safe')}
             className={`p-4 rounded-lg border-2 transition-all relative ${getBetColorClass('safe')}`}
-            disabled={Number(vaultInfo.currentPhase) !== Phase.DEPOSIT}
           >
             {aiAnalysis?.recommendation === 'safe' && showAIAnalysis && (
               <div className="absolute -top-2 -right-2 bg-purple-500 rounded-full p-1">
@@ -1048,7 +1049,7 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
               ? 'bg-green-600 hover:bg-green-700'
               : 'bg-blue-600 hover:bg-blue-700'
           }`}
-          disabled={!selectedBet || !betAmount || parseFloat(betAmount) <= 0 || isProcessing || Number(vaultInfo.currentPhase) !== Phase.DEPOSIT}
+          disabled={!selectedBet || !betAmount || parseFloat(betAmount) <= 0 || isProcessing}
         >
           {isProcessing ? (
             <>

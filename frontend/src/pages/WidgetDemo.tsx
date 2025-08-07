@@ -105,12 +105,27 @@ const WidgetDemo: React.FC = () => {
       <div className="relative z-10 container mx-auto px-6 py-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            AI-Powered DeFi Betting
+          <h1 className="text-4xl font-bold text-white mb-4">
+            Smart DeFi Insurance Made Simple
           </h1>
-          <p className="text-slate-300 max-w-2xl mx-auto">
-            Bet on protocol outcomes with <span className="font-semibold text-purple-400">AI-driven recommendations</span> based on your portfolio and market analysis.
+          <p className="text-slate-300 text-xl max-w-3xl mx-auto mb-6 leading-relaxed">
+            Get <span className="text-purple-400 font-semibold">AI-powered recommendations</span> that analyze your portfolio to suggest optimal protection or yield strategies. 
+            No complex insurance jargon - just smart betting with real returns.
           </p>
+          <div className="flex justify-center items-center gap-8 text-sm">
+            <div className="flex items-center gap-2 text-green-400">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="font-medium">Live Protocol</span>
+            </div>
+            <div className="flex items-center gap-2 text-purple-400">
+              <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+              <span className="font-medium">AI-Powered</span>
+            </div>
+            <div className="flex items-center gap-2 text-blue-400">
+              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+              <span className="font-medium">Real Returns</span>
+            </div>
+          </div>
         </div>
 
         {/* Main Widget Demo */}
@@ -167,44 +182,6 @@ const WidgetDemo: React.FC = () => {
         </div>
 
 
-        {/* Business Value */}
-        <div className="grid md:grid-cols-3 gap-6">
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Brain className="h-5 w-5 text-purple-400" />
-                AI-Powered Decisions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-slate-300">
-              <p>Advanced AI analyzes market data, protocol risks, and historical patterns to provide intelligent betting recommendations.</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Target className="h-5 w-5 text-green-400" />
-                Mass Market Appeal
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-slate-300">
-              <p>Transforms complex insurance into simple betting. Crypto users love speculation and profit opportunities.</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Zap className="h-5 w-5 text-blue-400" />
-                Viral Distribution
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-slate-300">
-              <p>Embeddable widgets with AI assistance spread organically. Each protocol becomes a distribution channel for CoverMax.</p>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   );
