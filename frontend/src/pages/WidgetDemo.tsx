@@ -3,8 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import Navbar from '@/components/Navbar';
 import PredictionMarketWidget from '@/components/PredictionMarketWidget';
+import Logo from '@/assets/images/CoverMax.svg';
+import { Link } from 'react-router-dom';
+import { useWeb3 } from '@/context/PrivyWeb3Context';
+import NetworkSelector from '@/components/NetworkSelector';
 import { Code, Zap, TrendingUp, Users, DollarSign, Target } from 'lucide-react';
 
 interface ProtocolDemo {
@@ -29,6 +32,12 @@ const demoProtocols: ProtocolDemo[] = [
 const WidgetDemo: React.FC = () => {
   const [selectedProtocol, setSelectedProtocol] = useState<ProtocolDemo>(demoProtocols[0]);
   const [showCode, setShowCode] = useState(false);
+  const { isConnected, address, connectWallet, disconnectWallet } = useWeb3();
+
+  // Format address for display
+  const formatAddress = (addr: string) => {
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
 
   const codeExample = `import PredictionMarketWidget from '@/components/PredictionMarketWidget';
 
@@ -50,7 +59,47 @@ const WidgetDemo: React.FC = () => {
         <div className="absolute bottom-40 right-20 w-60 h-60 bg-green-500/10 rounded-full blur-3xl animate-pulse delay-2000"></div>
       </div>
 
-      <Navbar />
+      {/* Isolated Header - With Clickable Logo */}
+      <div className="relative z-10 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-xl py-4 px-6">
+        <div className="container mx-auto flex justify-between items-center">
+          {/* Clickable Logo and Title */}
+          <div className="flex items-center space-x-2">
+            <Link to="/" className="flex items-center space-x-2">
+              <img src={Logo} alt="CoverMax Logo" className="h-8 w-auto" />
+              <span className="font-bold text-xl text-white">CoverMax</span>
+            </Link>
+            <span className="text-slate-400 text-sm ml-2">Widget Demo</span>
+          </div>
+
+          {/* Wallet Connection */}
+          <div className="flex items-center space-x-3">
+            <NetworkSelector />
+            {!isConnected ? (
+              <Button
+                variant="outline"
+                className="text-slate-300 hover:text-white hover:bg-slate-700 px-4 py-2 text-sm font-medium border-slate-600 hover:border-slate-500 bg-slate-800/50"
+                onClick={connectWallet}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 0 0-2.25-2.25H15a3 3 0 1 1-6 0H5.25A2.25 2.25 0 0 0 3 12m18 0v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 0 0-2.25-2.25H13.5m-9 0a2.25 2.25 0 0 0-2.25 2.25m18 0V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v3" />
+                </svg>
+                Connect Wallet
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                className="text-slate-300 hover:text-white hover:bg-slate-700 px-4 py-2 text-sm font-medium border-slate-600 hover:border-slate-500 bg-slate-800/50"
+                onClick={disconnectWallet}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 0 0-2.25-2.25H15a3 3 0 1 1-6 0H5.25A2.25 2.25 0 0 0 3 12m18 0v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 0 0-2.25-2.25H13.5m-9 0a2.25 2.25 0 0 0-2.25 2.25m18 0V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v3" />
+                </svg>
+                {formatAddress(address!)}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="relative z-10 container mx-auto px-6 py-8">
         {/* Header */}
@@ -233,3 +282,4 @@ const WidgetDemo: React.FC = () => {
 };
 
 export default WidgetDemo;
+

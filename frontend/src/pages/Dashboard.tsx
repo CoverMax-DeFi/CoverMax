@@ -1,281 +1,383 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
 import { useWeb3 } from '@/context/PrivyWeb3Context';
 import Navbar from '@/components/Navbar';
-import PhaseDisplay from '@/components/PhaseDisplay';
-import QuickTrade from '@/components/QuickTrade';
-import StatCard from '@/components/StatCard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { DollarSign, Coins, Shield, AlertCircle, RefreshCw, Activity, ArrowRight, Droplets } from 'lucide-react';
-import { Phase, ContractName, getContractAddress, SupportedChainId } from '@/config/contracts';
-import { ethers } from 'ethers';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Shield,
+  TrendingUp,
+  DollarSign,
+  Clock,
+  RefreshCw,
+} from 'lucide-react';
+import { Phase } from '@/config/contracts';
+import StatCard from '@/components/StatCard';
+
+// Import custom hooks
+import { usePricing } from '@/hooks/usePricing';
+import { usePortfolioCalculations } from '@/hooks/usePortfolioCalculations';
+
+// Import dashboard components
+import PortfolioOverview from '@/components/dashboard/PortfolioOverview';
+import DepositStrategies from '@/components/dashboard/DepositStrategies';
+import PositionManagement from '@/components/dashboard/PositionManagement';
+import AdvancedFeatures from '@/components/dashboard/AdvancedFeatures';
+import MarketOverview from '@/components/dashboard/MarketOverview';
 
 const Dashboard = () => {
   const {
     isConnected,
-    balances,
     vaultInfo,
+    depositAsset,
+    withdraw,
+    emergencyWithdraw,
+    swapExactTokensForTokens,
     getAmountsOut,
     seniorTokenAddress,
     juniorTokenAddress,
-    getPairReserves,
-    currentChain,
-    isUnsupportedChain,
+    stakeRiskTokens,
+    unstakeRiskTokens,
+    refreshData,
+    getTokenBalance,
   } = useWeb3();
 
-  const [seniorPrice, setSeniorPrice] = useState('0.98');
-  const [juniorPrice, setJuniorPrice] = useState('1.05');
-  const [pricesLoading, setPricesLoading] = useState(false);
-  
-  // Pool reserves state
-  const [poolReserves, setPoolReserves] = useState({ senior: '0', junior: '0' });
+  // Custom hooks for pricing and calculations
+  const { seniorPrice, juniorPrice, poolReserves } = usePricing();
+  const {
+    formatNumber,
+    seniorBalance,
+    juniorBalance,
+    aUSDCBalance,
+    cUSDTBalance,
+    lpBalance,
+    totalPortfolioValue,
+    protocolTVL,
+    userSharePercent,
+    riskProfile,
+  } = usePortfolioCalculations(seniorPrice, juniorPrice);
 
-  // Format token amounts for display
-  const formatTokenAmount = (amount: bigint) => {
-    return ethers.formatEther(amount);
+  // State Management
+  const [activeTab, setActiveTab] = useState('overview');
+  const [isExecuting, setIsExecuting] = useState(false);
+
+  // Strategy execution
+  const executeStrategy = async (strategy: 'safety' | 'upside' | 'balanced', amount: string, asset: 'aUSDC' | 'cUSDT') => {
+    if (!amount || parseFloat(amount) <= 0) return;
+
+    setIsExecuting(true);
+    try {
+      // First deposit to get tokens
+      await depositAsset(asset, amount);
+
+      if (strategy === 'safety') {
+        // Convert all junior to senior
+        const freshJuniorBalance = await getTokenBalance(juniorTokenAddress!);
+        if (Number(freshJuniorBalance) > 0) {
+          const path = [juniorTokenAddress!, seniorTokenAddress!];
+          const balanceString = formatNumber(Number(freshJuniorBalance) / 1e18, 18);
+          const estimate = await getAmountsOut(balanceString, path);
+          const minOutput = (parseFloat(estimate) * 0.95).toFixed(18);
+          await swapExactTokensForTokens(balanceString, minOutput, path);
+        }
+      } else if (strategy === 'upside') {
+        // Convert all senior to junior
+        const freshSeniorBalance = await getTokenBalance(seniorTokenAddress!);
+        if (Number(freshSeniorBalance) > 0) {
+          const path = [seniorTokenAddress!, juniorTokenAddress!];
+          const balanceString = formatNumber(Number(freshSeniorBalance) / 1e18, 18);
+          const estimate = await getAmountsOut(balanceString, path);
+          const minOutput = (parseFloat(estimate) * 0.95).toFixed(18);
+          await swapExactTokensForTokens(balanceString, minOutput, path);
+        }
+      }
+      // For balanced, keep 50/50 split from deposit
+
+      await refreshData();
+    } catch (error) {
+      console.error('Strategy execution failed:', error);
+    } finally {
+      setIsExecuting(false);
+    }
   };
 
-  // Fetch token prices and pool reserves from Uniswap pair
-  useEffect(() => {
-    const fetchTokenPrices = async () => {
-      if (!seniorTokenAddress || !juniorTokenAddress || !getAmountsOut || !currentChain) return;
-      
-      setPricesLoading(true);
-      try {
-        // Get pool reserves to calculate proper AMM pricing
-        const pairAddress = getContractAddress(currentChain, ContractName.SENIOR_JUNIOR_PAIR);
-        const reserves = await getPairReserves(pairAddress);
-        const seniorReserve = parseFloat(ethers.formatEther(reserves.reserve0));
-        const juniorReserve = parseFloat(ethers.formatEther(reserves.reserve1));
-        
-        // Calculate prices directly from Uniswap AMM reserves
-        // In a Uniswap pair, price = other_reserve / this_reserve
-        const seniorPriceInJunior = juniorReserve / seniorReserve;
-        const juniorPriceInSenior = seniorReserve / juniorReserve;
-        
-        // For USD pricing, we need to establish a base.
-        // Let's use getAmountsOut to get actual market prices
-        try {
-          // Get price of 1 SENIOR in terms of JUNIOR
-          const seniorToJuniorPath = [seniorTokenAddress, juniorTokenAddress];
-          const seniorPrice1Unit = await getAmountsOut('1', seniorToJuniorPath);
-          
-          // Get price of 1 JUNIOR in terms of SENIOR
-          const juniorToSeniorPath = [juniorTokenAddress, seniorTokenAddress];
-          const juniorPrice1Unit = await getAmountsOut('1', juniorToSeniorPath);
-          
-          setSeniorPrice(parseFloat(seniorPrice1Unit).toFixed(2));
-          setJuniorPrice(parseFloat(juniorPrice1Unit).toFixed(2));
-        } catch (error) {
-          console.error('Error getting AMM prices:', error);
-          // Fallback to reserve-based calculation
-          setSeniorPrice(seniorPriceInJunior.toFixed(2));
-          setJuniorPrice(juniorPriceInSenior.toFixed(2));
-        }
-      } catch (error) {
-        console.error('Error fetching token prices:', error);
-        // Keep default prices on error (equal weighting)
-        setSeniorPrice('1.00');
-        setJuniorPrice('1.00');
-      } finally {
-        setPricesLoading(false);
+  // Rebalancing handler
+  const handleRebalance = async (targetPercent: number) => {
+    if (!seniorTokenAddress || !juniorTokenAddress || !swapExactTokensForTokens || !getAmountsOut) return;
+
+    const currentSeniorPercent = riskProfile.percentage;
+    const percentDiff = targetPercent - currentSeniorPercent;
+
+    if (Math.abs(percentDiff) < 1) return;
+
+    setIsExecuting(true);
+    try {
+      let amountIn: string;
+      let path: string[];
+
+      if (targetPercent === 100) {
+        amountIn = juniorBalance.toFixed(18);
+        path = [juniorTokenAddress, seniorTokenAddress];
+      } else if (targetPercent === 0) {
+        amountIn = seniorBalance.toFixed(18);
+        path = [seniorTokenAddress, juniorTokenAddress];
+      } else if (percentDiff > 0) {
+        const totalTokens = seniorBalance + juniorBalance;
+        const targetSeniorAmount = (totalTokens * targetPercent) / 100;
+        const seniorNeeded = targetSeniorAmount - seniorBalance;
+        const juniorToSwap = Math.min(seniorNeeded / parseFloat(juniorPrice), juniorBalance);
+        amountIn = juniorToSwap.toFixed(18);
+        path = [juniorTokenAddress, seniorTokenAddress];
+      } else {
+        const totalTokens = seniorBalance + juniorBalance;
+        const targetJuniorAmount = (totalTokens * (100 - targetPercent)) / 100;
+        const juniorNeeded = targetJuniorAmount - juniorBalance;
+        const seniorToSwap = Math.min(juniorNeeded * parseFloat(juniorPrice), seniorBalance);
+        amountIn = seniorToSwap.toFixed(18);
+        path = [seniorTokenAddress, juniorTokenAddress];
       }
-    };
 
-    const fetchPoolReserves = async () => {
-      if (!getPairReserves || !currentChain) return;
-      
-      try {
-        const pairAddress = getContractAddress(currentChain, ContractName.SENIOR_JUNIOR_PAIR);
-        const reserves = await getPairReserves(pairAddress);
-        
-        // Format reserves from wei to ether
-        const seniorReserve = ethers.formatEther(reserves.reserve0);
-        const juniorReserve = ethers.formatEther(reserves.reserve1);
-        
-        // Only update if values have changed significantly (avoid micro-updates)
-        const currentSenior = parseFloat(poolReserves.senior);
-        const currentJunior = parseFloat(poolReserves.junior);
-        const newSenior = parseFloat(seniorReserve);
-        const newJunior = parseFloat(juniorReserve);
-        
-        if (Math.abs(currentSenior - newSenior) > 0.01 || Math.abs(currentJunior - newJunior) > 0.01) {
-          setPoolReserves({
-            senior: seniorReserve,
-            junior: juniorReserve,
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching pool reserves:', error);
-        // Only reset if we don't have valid data
-        if (poolReserves.senior === '0' && poolReserves.junior === '0') {
-          setPoolReserves({ senior: '0', junior: '0' });
-        }
+      if (parseFloat(amountIn) > 0) {
+        const amountsOut = await getAmountsOut(amountIn, path);
+        const minAmountOut = (parseFloat(amountsOut) * 0.95).toFixed(18);
+        await swapExactTokensForTokens(amountIn, minAmountOut, path);
       }
-    };
 
-    fetchTokenPrices();
-    fetchPoolReserves();
-    const interval = setInterval(() => {
-      fetchTokenPrices();
-      fetchPoolReserves();
-    }, 30000); // Update every 30 seconds to reduce twitching
-    
-    return () => clearInterval(interval);
-  }, [seniorTokenAddress, juniorTokenAddress, getAmountsOut, getPairReserves, currentChain]);
+      await refreshData();
+    } catch (error) {
+      console.error('Rebalancing failed:', error);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
 
-  // Calculate total portfolio value based on risk token holdings and current market prices
-  const seniorTokenAmount = parseFloat(formatTokenAmount(balances.seniorTokens));
-  const juniorTokenAmount = parseFloat(formatTokenAmount(balances.juniorTokens));
-  
-  const totalPortfolioValue = 
-    (seniorTokenAmount * parseFloat(seniorPrice)) +
-    (juniorTokenAmount * parseFloat(juniorPrice));
+  // Withdrawal handler
+  const handleWithdraw = async (amount: string) => {
+    if (!amount || parseFloat(amount) <= 0) return;
+
+    setIsExecuting(true);
+    try {
+      // Simplified withdrawal logic - could be enhanced with optimal token calculation
+      const halfAmount = (parseFloat(amount) / 2).toFixed(6);
+      await withdraw(halfAmount, halfAmount);
+      await refreshData();
+    } catch (error) {
+      console.error('Withdrawal failed:', error);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  // Risk token staking handlers
+  const handleStakeRiskTokens = async (seniorAmount: string, juniorAmount: string) => {
+    if (!seniorTokenAddress || !juniorTokenAddress) return;
+    setIsExecuting(true);
+    try {
+      await stakeRiskTokens(seniorAmount, juniorAmount, seniorTokenAddress, juniorTokenAddress);
+      await refreshData();
+    } catch (error) {
+      console.error('Stake risk tokens failed:', error);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  const handleUnstakeRiskTokens = async (amount: string) => {
+    if (!seniorTokenAddress || !juniorTokenAddress) return;
+    setIsExecuting(true);
+    try {
+      await unstakeRiskTokens(amount, seniorTokenAddress, juniorTokenAddress);
+      await refreshData();
+    } catch (error) {
+      console.error('Unstake risk tokens failed:', error);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  const handleEmergencyWithdraw = async (amount: string, asset: 'aUSDC' | 'cUSDT') => {
+    setIsExecuting(true);
+    try {
+      await emergencyWithdraw(amount, asset);
+      await refreshData();
+    } catch (error) {
+      console.error('Emergency withdrawal failed:', error);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  if (!isConnected) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Navbar />
+        <div className="container mx-auto px-6 py-20">
+          <Card className="max-w-md mx-auto bg-slate-800/50 border-slate-700">
+            <CardContent className="p-8 text-center">
+              <Shield className="w-16 h-16 mx-auto mb-4 text-blue-400" />
+              <h2 className="text-xl font-semibold text-white mb-2">Connect Your Wallet</h2>
+              <p className="text-slate-400 mb-6">
+                Connect to start earning yield with risk management
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Animated background elements */}
+      {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute top-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
         <div className="absolute bottom-40 right-20 w-60 h-60 bg-green-500/10 rounded-full blur-3xl animate-pulse delay-2000"></div>
       </div>
-      
+
       <Navbar />
 
-      <div className="relative z-10 container mx-auto px-6 py-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
+      <div className="relative z-10 container mx-auto px-4 md:px-6 py-4 md:py-8">
+        {/* Header */}
+        <div className="mb-6 md:mb-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">
-                Trading Dashboard
-              </h1>
-              <p className="text-slate-300">
-                Smart trading with one-click deposit and risk management
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Portfolio Dashboard</h1>
+              <p className="text-slate-300 text-sm md:text-base">
+                Smart risk management with tradeable insurance tokens
               </p>
             </div>
-            <div className="flex items-center text-slate-400 text-sm">
-              <RefreshCw className={`w-4 h-4 mr-2 ${pricesLoading ? 'animate-spin' : ''}`} />
-              Real-time data
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <Badge
+                variant="outline"
+                className={`border-${riskProfile.color}-500 text-${riskProfile.color}-400 text-xs md:text-sm`}
+              >
+                {riskProfile.level} Risk Profile
+              </Badge>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={refreshData}
+                className="border-slate-600 bg-slate-800/50 text-slate-300 hover:bg-slate-700 hover:text-white"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Connection Status */}
-        {!isConnected && (
-          <Alert className="mb-6 bg-slate-800/50 border-slate-700 text-slate-300">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Please connect your wallet to interact with the protocol
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Key Metrics Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+          <StatCard
+            title="Portfolio Value"
+            value={`$${formatNumber(totalPortfolioValue)}`}
+            description={`${formatNumber(userSharePercent, 4)}% of protocol`}
+            icon={<DollarSign className="w-8 h-8 text-green-400" />}
+            className="text-white"
+          />
 
+          <StatCard
+            title="Senior Tokens"
+            value={formatNumber(seniorBalance)}
+            description={`$${formatNumber(seniorBalance * parseFloat(seniorPrice))} value`}
+            icon={<Shield className="w-8 h-8 text-blue-400" />}
+            className="text-blue-400"
+          />
 
-        {/* Quick Trade - Hero Section */}
-        <div className="mb-8">
-          <QuickTrade />
+          <StatCard
+            title="Junior Tokens"
+            value={formatNumber(juniorBalance)}
+            description={`$${formatNumber(juniorBalance * parseFloat(juniorPrice))} value`}
+            icon={<TrendingUp className="w-8 h-8 text-amber-400" />}
+            className="text-amber-400"
+          />
+
+          <StatCard
+            title="Protocol Phase"
+            value={vaultInfo.currentPhase !== undefined ? Phase[vaultInfo.currentPhase] : 'Loading...'}
+            description={`TVL: $${formatNumber(protocolTVL, 0)}`}
+            icon={<Clock className="w-8 h-8 text-purple-400" />}
+            className="text-white"
+          />
         </div>
-        
-                {/* Portfolio Overview */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-white">Your Portfolio</h2>
-            <div className="text-sm text-slate-400">Current positions and protocol status</div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-white">Your Positions</CardTitle>
-              <CardDescription className="text-slate-300">Current risk token holdings</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                    <Shield className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-white font-medium">SENIOR</p>
-                    <p className="text-slate-400 text-sm">Priority claims</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-white font-medium">{formatTokenAmount(balances.seniorTokens)}</p>
-                  <p className="text-slate-400 text-sm">Value: ${(seniorTokenAmount * parseFloat(seniorPrice)).toFixed(2)}</p>
-                </div>
-              </div>
-              
-              <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-amber-600 rounded-full flex items-center justify-center">
-                    <Coins className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-white font-medium">JUNIOR</p>
-                    <p className="text-slate-400 text-sm">Higher upside</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-white font-medium">{formatTokenAmount(balances.juniorTokens)}</p>
-                  <p className="text-slate-400 text-sm">Value: ${(juniorTokenAmount * parseFloat(juniorPrice)).toFixed(2)}</p>
-                </div>
-              </div>
-              
-              <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                    <Droplets className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-white font-medium">LP TOKENS</p>
-                    <p className="text-slate-400 text-sm">Liquidity provider</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-white font-medium">{formatTokenAmount(balances.lpTokens)}</p>
-                  <p className="text-slate-400 text-sm">Pool share</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-white">Protocol Status</CardTitle>
-              <CardDescription className="text-slate-300">Current protocol information</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-300">Current Phase:</span>
-                <span className="text-white font-medium">{vaultInfo.currentPhase !== undefined ? Phase[vaultInfo.currentPhase] : 'Loading...'}</span>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-slate-300">Emergency Mode:</span>
-                <span className={`font-medium ${vaultInfo.emergencyMode ? 'text-red-400' : 'text-green-400'}`}>
-                  {vaultInfo.emergencyMode ? '🚨 Active' : '✅ Inactive'}
-                </span>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-slate-300">Total TVL:</span>
-                <span className="text-white font-medium">${((Number(vaultInfo.aUSDCBalance) + Number(vaultInfo.cUSDTBalance)) / 1e18).toFixed(2)}</span>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-slate-300">Your Share:</span>
-                <span className="text-white font-medium">
-                  {vaultInfo.totalTokensIssued > 0n 
-                    ? ((seniorTokenAmount + juniorTokenAmount) / (Number(vaultInfo.totalTokensIssued) / 1e18) * 100).toFixed(2) 
-                    : '0.00'}%
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-          </div>
+        {/* Main Content Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-slate-800/80 border border-slate-600">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300 font-medium">Overview</TabsTrigger>
+            <TabsTrigger value="deposit" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300 font-medium">Deposit & Trade</TabsTrigger>
+            <TabsTrigger value="manage" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300 font-medium">Manage Positions</TabsTrigger>
+            <TabsTrigger value="advanced" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-300 font-medium">Staking</TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-4 md:space-y-6">
+            <PortfolioOverview
+              seniorBalance={seniorBalance}
+              juniorBalance={juniorBalance}
+              lpBalance={lpBalance}
+              seniorPrice={seniorPrice}
+              juniorPrice={juniorPrice}
+              riskProfile={riskProfile}
+              formatNumber={formatNumber}
+              protocolTVL={protocolTVL}
+              userSharePercent={userSharePercent}
+              vaultInfo={vaultInfo}
+              onTabChange={setActiveTab}
+            />
+          </TabsContent>
+
+          {/* Deposit & Trade Tab */}
+          <TabsContent value="deposit" className="space-y-4 md:space-y-6">
+            <DepositStrategies
+              aUSDCBalance={aUSDCBalance}
+              cUSDTBalance={cUSDTBalance}
+              formatNumber={formatNumber}
+              isExecuting={isExecuting}
+              onExecuteStrategy={executeStrategy}
+            />
+          </TabsContent>
+
+          {/* Manage Positions Tab */}
+          <TabsContent value="manage" className="space-y-4 md:space-y-6">
+            <PositionManagement
+              riskProfile={riskProfile}
+              totalPortfolioValue={totalPortfolioValue}
+              formatNumber={formatNumber}
+              isExecuting={isExecuting}
+              onRebalance={handleRebalance}
+              onWithdraw={handleWithdraw}
+              vaultInfo={vaultInfo}
+            />
+          </TabsContent>
+
+          {/* Advanced Tab */}
+          <TabsContent value="advanced" className="space-y-4 md:space-y-6">
+            <AdvancedFeatures
+              seniorBalance={seniorBalance}
+              juniorBalance={juniorBalance}
+              lpBalance={lpBalance}
+              formatNumber={formatNumber}
+              isExecuting={isExecuting}
+              vaultInfo={vaultInfo}
+              onStakeRiskTokens={handleStakeRiskTokens}
+              onUnstakeRiskTokens={handleUnstakeRiskTokens}
+              onEmergencyWithdraw={handleEmergencyWithdraw}
+            />
+          </TabsContent>
+        </Tabs>
+
+        {/* Market Overview - Always Visible at Bottom */}
+        <div className="mt-6 md:mt-8">
+          <MarketOverview
+            seniorPrice={seniorPrice}
+            juniorPrice={juniorPrice}
+            poolReserves={poolReserves}
+            protocolTVL={protocolTVL}
+            formatNumber={formatNumber}
+          />
         </div>
       </div>
     </div>

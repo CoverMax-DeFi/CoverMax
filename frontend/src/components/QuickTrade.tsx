@@ -10,7 +10,7 @@ import { Phase, ContractName, getContractAddress, SupportedChainId } from '@/con
 import SmartLiquiditySuggestion from './SmartLiquiditySuggestion';
 import { ethers } from 'ethers';
 
-type TradeIntent = 'safety' | 'upside' | 'equalize' | 'fullCoverage' | 'fullRisk' | 'balanced' | 'maxSafety' | 'maxUpside' | 'addLiquidity';
+type TradeIntent = 'safety' | 'upside' | 'equalize' | 'fullCoverage' | 'fullRisk' | 'balanced' | 'maxSafety' | 'maxUpside' | 'stakeRiskTokens';
 
 const QuickTrade: React.FC = () => {
   const { 
@@ -22,7 +22,7 @@ const QuickTrade: React.FC = () => {
     swapExactTokensForTokens,
     getAmountsOut,
     depositAsset,
-    addLiquidity,
+    stakeRiskTokens,
     refreshData,
     getPairReserves,
     getTokenBalance,
@@ -197,7 +197,7 @@ const QuickTrade: React.FC = () => {
           console.log(`Adding liquidity: ${seniorAmountString} SENIOR + ${juniorAmountString} JUNIOR`);
           console.log(`Pool ratio: ${poolRatio.toFixed(6)} (${juniorReserve}/${seniorReserve})`);
           
-          await addLiquidity(seniorAmountString, juniorAmountString, seniorTokenAddress!, juniorTokenAddress!);
+          await stakeRiskTokens(seniorAmountString, juniorAmountString, seniorTokenAddress!, juniorTokenAddress!);
           setShowLiquiditySuggestion(false);
         } else {
           alert('Insufficient tokens to add meaningful liquidity while maintaining pool ratio.');
@@ -206,7 +206,7 @@ const QuickTrade: React.FC = () => {
         alert('Cannot determine pool ratio. Pool may be empty.');
       }
     } catch (error) {
-      console.error('Add liquidity failed:', error);
+      console.error('Stake risk tokens failed:', error);
       alert('Adding liquidity failed. Please try again.');
     } finally {
       setIsExecuting(false);

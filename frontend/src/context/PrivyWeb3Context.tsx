@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import { PrivyProvider, usePrivy, useWallets } from '@privy-io/react-auth';
 import { ethers, BrowserProvider, Contract, Signer } from 'ethers';
 import { toast } from '@/components/ui/sonner';
@@ -101,15 +101,15 @@ interface Web3ContextType {
     path: string[],
   ) => Promise<string>;
 
-  addLiquidity: (
+  stakeRiskTokens: (
     tokenAAmount: string,
     tokenBAmount: string,
     tokenA: string,
     tokenB: string,
   ) => Promise<void>;
 
-  removeLiquidity: (
-    lpTokenAmount: string,
+  unstakeRiskTokens: (
+    stakedTokenAmount: string,
     tokenA: string,
     tokenB: string,
   ) => Promise<void>;
@@ -160,14 +160,15 @@ const Web3Context = createContext<Web3ContextType>({
   emergencyWithdraw: async () => {},
   toggleEmergencyMode: async () => {},
   forcePhaseTransition: async () => {},
+  forcePhaseTransitionImmediate: async () => {},
   startNewCycle: async () => {},
   refreshData: async () => {},
   approveToken: async () => {},
   calculateWithdrawalAmounts: async () => ({ aUSDC: 0n, cUSDT: 0n }),
   swapExactTokensForTokens: async () => {},
   getAmountsOut: async () => "0",
-  addLiquidity: async () => {},
-  removeLiquidity: async () => {},
+  stakeRiskTokens: async () => {},
+  unstakeRiskTokens: async () => {},
   getPairReserves: async () => ({ reserve0: 0n, reserve1: 0n }),
   getTokenBalance: async () => 0n,
 });
@@ -205,6 +206,10 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
   
   const [seniorTokenAddress, setSeniorTokenAddress] = useState<string | null>(null);
   const [juniorTokenAddress, setJuniorTokenAddress] = useState<string | null>(null);
+  
+  // Add ref to track last refresh time for debouncing
+  const lastRefreshTime = useRef<number>(0);
+  const isRefreshing = useRef<boolean>(false);
 
   // Initial state values for cleanup
   const initialBalances: TokenBalances = {
@@ -353,27 +358,77 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
     setupNetworkListener();
   }, [ready, authenticated, wallets, logout]);
 
-  // Load contract data
+  // Load contract data for initial connection
   const loadContractData = async (provider: BrowserProvider, signer: Signer, chainId: SupportedChainId) => {
     try {
+      const userAddress = await signer.getAddress();
+      
+      // Get all contract addresses
       const vaultAddress = getContractAddress(chainId, ContractName.RISK_VAULT);
-      if (!vaultAddress) {
-        console.warn('Risk vault not deployed on this chain');
+      const aUSDCAddress = getContractAddress(chainId, ContractName.MOCK_AUSDC);
+      const cUSDTAddress = getContractAddress(chainId, ContractName.MOCK_CUSDT);
+      const pairAddress = getContractAddress(chainId, ContractName.SENIOR_JUNIOR_PAIR);
+      
+      if (!vaultAddress || !aUSDCAddress || !cUSDTAddress || !pairAddress) {
+        console.warn('Some contracts not available on current chain');
         return;
       }
-
-      const vaultContract = new Contract(vaultAddress, RISK_VAULT_ABI, provider);
       
-      // Get token addresses
-      const [seniorAddr, juniorAddr] = await Promise.all([
+      // Create contract instances
+      const vaultContract = new Contract(vaultAddress, RISK_VAULT_ABI, provider);
+      const aUSDCContract = new Contract(aUSDCAddress, ERC20_ABI, provider);
+      const cUSDTContract = new Contract(cUSDTAddress, ERC20_ABI, provider);
+      const pairContract = new Contract(pairAddress, ERC20_ABI, provider);
+      
+      console.log('🚀 Loading initial data...');
+      
+      // Fetch everything in parallel - simple and fast
+      const [
+        seniorAddr,
+        juniorAddr,
+        protocolStatus,
+        phaseInfo,
+        vaultBalances,
+        userTokenBalances,
+        aUSDCBalance,
+        cUSDTBalance,
+        lpBalance,
+      ] = await Promise.all([
         vaultContract.seniorToken(),
         vaultContract.juniorToken(),
+        vaultContract.getProtocolStatus(),
+        vaultContract.getPhaseInfo(),
+        vaultContract.getVaultBalances(),
+        vaultContract.getUserTokenBalances(userAddress),
+        aUSDCContract.balanceOf(userAddress),
+        cUSDTContract.balanceOf(userAddress),
+        pairContract.balanceOf(userAddress),
       ]);
+      
+      console.log('✅ Initial data loaded');
+      
+      // Set all state at once
       setSeniorTokenAddress(seniorAddr);
       setJuniorTokenAddress(juniorAddr);
       
-      // Load balances and vault info
-      await refreshData();
+      setVaultInfo({
+        aUSDCBalance: vaultBalances.aUSDCVaultBalance,
+        cUSDTBalance: vaultBalances.cUSDTVaultBalance,
+        totalTokensIssued: protocolStatus.totalTokens,
+        emergencyMode: protocolStatus.emergency,
+        currentPhase: protocolStatus.phase,
+        phaseStartTime: phaseInfo.phaseStart,
+        cycleStartTime: phaseInfo.cycleStart,
+        timeRemaining: phaseInfo.timeRemaining,
+      });
+      
+      setBalances({
+        seniorTokens: userTokenBalances.seniorBalance,
+        juniorTokens: userTokenBalances.juniorBalance,
+        aUSDC: aUSDCBalance,
+        cUSDT: cUSDTBalance,
+        lpTokens: lpBalance,
+      });
     } catch (error) {
       console.error('Error loading contract data:', error);
       toast.error('Failed to load contract data for this network');
@@ -424,137 +479,80 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
-  // Refresh all data
+  // Refresh data (simpler version)
   const refreshData = useCallback(async () => {
     if (!provider || !signer || !address || !currentChain) {
-      console.log('⏭️ Skipping refresh - missing provider, signer, address, or currentChain');
       return;
     }
     
-    // Check if network is consistent before proceeding
-    const networkChainId = await provider.getNetwork().then(n => Number(n.chainId)).catch(() => null);
-    if (networkChainId && networkChainId !== currentChain) {
-      console.log(`⚠️ Network mismatch detected: provider=${networkChainId}, context=${currentChain}. Skipping refresh.`);
+    // Simple debouncing
+    const now = Date.now();
+    if (now - lastRefreshTime.current < 500 || isRefreshing.current) {
       return;
     }
     
-    console.log(`🔄 Refreshing data for chain ${currentChain} (${getChainConfig(currentChain)?.chainName})`);
+    isRefreshing.current = true;
+    lastRefreshTime.current = now;
     
     try {
+      // Get contract addresses
       const vaultAddress = getCurrentChainAddress(ContractName.RISK_VAULT);
-      if (!vaultAddress) {
-        console.warn('Risk vault not available on current chain');
-        return;
-      }
-
-      console.log(`📄 Using vault contract at: ${vaultAddress}`);
-      const vaultContract = new Contract(vaultAddress, RISK_VAULT_ABI, provider);
-      
-      // Get vault info with detailed logging
-      console.log('📊 Fetching vault contract data...');
-      let userTokenBalances: any;
-      try {
-        const [
-          protocolStatus,
-          phaseInfo,
-          vaultBalances,
-          userTokenBalancesResult,
-        ] = await Promise.all([
-          vaultContract.getProtocolStatus(),
-          vaultContract.getPhaseInfo(),
-          vaultContract.getVaultBalances(),
-          vaultContract.getUserTokenBalances(address),
-        ]);
-        
-        userTokenBalances = userTokenBalancesResult;
-        console.log('✅ Vault contract data fetched successfully');
-        
-        setVaultInfo({
-          aUSDCBalance: vaultBalances.aUSDCVaultBalance,
-          cUSDTBalance: vaultBalances.cUSDTVaultBalance,
-          totalTokensIssued: protocolStatus.totalTokens,
-          emergencyMode: protocolStatus.emergency,
-          currentPhase: protocolStatus.phase,
-          phaseStartTime: phaseInfo.phaseStart,
-          cycleStartTime: phaseInfo.cycleStart,
-          timeRemaining: phaseInfo.timeRemaining,
-        });
-      } catch (vaultError) {
-        if (vaultError.code === 'NETWORK_ERROR') {
-          console.log('🔄 Network change detected in vault calls, skipping...');
-          return;
-        }
-        if (vaultError.code === 'CALL_EXCEPTION' && currentChain === 296) {
-          console.log('⚠️ Hedera RPC issue detected in vault calls, skipping...');
-          return;
-        }
-        console.error('❌ Vault contract calls failed:', vaultError);
-        throw vaultError;
-      }
-      
-      // Get user token balances
       const aUSDCAddress = getCurrentChainAddress(ContractName.MOCK_AUSDC);
       const cUSDTAddress = getCurrentChainAddress(ContractName.MOCK_CUSDT);
       const pairAddress = getCurrentChainAddress(ContractName.SENIOR_JUNIOR_PAIR);
-
-      if (!aUSDCAddress || !cUSDTAddress || !pairAddress) {
-        console.warn('Some token contracts not available on current chain');
+      
+      if (!vaultAddress || !aUSDCAddress || !cUSDTAddress || !pairAddress) {
         return;
       }
-
-      console.log(`💰 Fetching token balances...`);
-      console.log(`  aUSDC: ${aUSDCAddress}`);
-      console.log(`  cUSDT: ${cUSDTAddress}`);
-      console.log(`  Pair: ${pairAddress}`);
-
+      
+      // Create contract instances
+      const vaultContract = new Contract(vaultAddress, RISK_VAULT_ABI, provider);
       const aUSDCContract = new Contract(aUSDCAddress, ERC20_ABI, provider);
       const cUSDTContract = new Contract(cUSDTAddress, ERC20_ABI, provider);
       const pairContract = new Contract(pairAddress, ERC20_ABI, provider);
       
-      try {
-        const [aUSDCBalance, cUSDTBalance, lpBalance] = await Promise.all([
-          aUSDCContract.balanceOf(address),
-          cUSDTContract.balanceOf(address),
-          pairContract.balanceOf(address),
-        ]);
-        
-        console.log('✅ Token balances fetched successfully');
-        
-        setBalances({
-          seniorTokens: userTokenBalances.seniorBalance,
-          juniorTokens: userTokenBalances.juniorBalance,
-          aUSDC: aUSDCBalance,
-          cUSDT: cUSDTBalance,
-          lpTokens: lpBalance,
-        });
-      } catch (tokenError) {
-        if (tokenError.code === 'NETWORK_ERROR') {
-          console.log('🔄 Network change detected in token calls, skipping...');
-          return;
-        }
-        if (tokenError.code === 'CALL_EXCEPTION' && currentChain === 296) {
-          console.log('⚠️ Hedera RPC issue detected in token calls, skipping...');
-          return;
-        }
-        console.error('❌ Token balance calls failed:', tokenError);
-        throw tokenError;
-      }
-    } catch (error) {
-      if (error.code === 'NETWORK_ERROR') {
-        console.log('🔄 Network change detected in main refresh, skipping...');
-        return;
-      }
-      if (error.code === 'CALL_EXCEPTION' && currentChain === 296) {
-        console.log('⚠️ Hedera RPC rate limiting detected, skipping refresh...');
-        return;
-      }
-      console.error('💥 Error refreshing data on chain', currentChain, ':', error);
-      console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        reason: error.reason
+      // Fetch all data in parallel (token addresses already loaded, so skip them)
+      const [
+        protocolStatus,
+        phaseInfo,
+        vaultBalances,
+        userTokenBalances,
+        aUSDCBalance,
+        cUSDTBalance,
+        lpBalance,
+      ] = await Promise.all([
+        vaultContract.getProtocolStatus(),
+        vaultContract.getPhaseInfo(),
+        vaultContract.getVaultBalances(),
+        vaultContract.getUserTokenBalances(address),
+        aUSDCContract.balanceOf(address),
+        cUSDTContract.balanceOf(address),
+        pairContract.balanceOf(address),
+      ]);
+      
+      // Update state
+      setVaultInfo({
+        aUSDCBalance: vaultBalances.aUSDCVaultBalance,
+        cUSDTBalance: vaultBalances.cUSDTVaultBalance,
+        totalTokensIssued: protocolStatus.totalTokens,
+        emergencyMode: protocolStatus.emergency,
+        currentPhase: protocolStatus.phase,
+        phaseStartTime: phaseInfo.phaseStart,
+        cycleStartTime: phaseInfo.cycleStart,
+        timeRemaining: phaseInfo.timeRemaining,
       });
-      toast.error(`Failed to refresh data on ${getChainConfig(currentChain)?.chainName || 'unknown network'}`);
+      
+      setBalances({
+        seniorTokens: userTokenBalances.seniorBalance,
+        juniorTokens: userTokenBalances.juniorBalance,
+        aUSDC: aUSDCBalance,
+        cUSDT: cUSDTBalance,
+        lpTokens: lpBalance,
+      });
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      isRefreshing.current = false;
     }
   }, [provider, signer, address, currentChain, getCurrentChainAddress]);
 
@@ -1032,7 +1030,7 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
-  const addLiquidity = async (tokenAAmount: string, tokenBAmount: string, tokenA: string, tokenB: string) => {
+  const stakeRiskTokens = async (tokenAAmount: string, tokenBAmount: string, tokenA: string, tokenB: string) => {
     if (!signer || !address) {
       toast.error('Please connect your wallet');
       return;
@@ -1092,7 +1090,7 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
         await approveTx.wait();
       }
 
-      // Add liquidity
+      // Stake risk tokens
       const router = new Contract(routerAddress, UNISWAP_V2_ROUTER_ABI, signer);
       const tx = await router.addLiquidity(
         tokenA,
@@ -1105,28 +1103,28 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
         deadline,
       );
 
-      toast.info('Adding liquidity...');
+      toast.info('Staking risk tokens...');
       await tx.wait();
-      toast.success('Liquidity added');
+      toast.success('Risk tokens staked');
       
       await refreshData();
     } catch (error: any) {
-      console.error('Failed to add liquidity:', error);
-      toast.error(error.reason || 'Failed to add liquidity');
+      console.error('Failed to stake risk tokens:', error);
+      toast.error(error.reason || 'Failed to stake risk tokens');
     }
   };
 
-  const removeLiquidity = async (lpTokenAmount: string, tokenA: string, tokenB: string) => {
+  const unstakeRiskTokens = async (stakedTokenAmount: string, tokenA: string, tokenB: string) => {
     if (!signer || !address) {
       toast.error('Please connect your wallet');
       return;
     }
 
     try {
-      const lpAmountWei = ethers.parseEther(lpTokenAmount);
+      const stakedAmountWei = ethers.parseEther(stakedTokenAmount);
       const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20 minutes
 
-      // Approve LP tokens
+      // Approve staked tokens
       const pairAddress = getCurrentChainAddress(ContractName.SENIOR_JUNIOR_PAIR);
       const routerAddress = getCurrentChainAddress(ContractName.UNISWAP_V2_ROUTER);
 
@@ -1138,32 +1136,32 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
       const pairContract = new Contract(pairAddress, ERC20_ABI, signer);
       const allowance = await pairContract.allowance(address, routerAddress);
 
-      if (allowance < lpAmountWei) {
-        const approveTx = await pairContract.approve(routerAddress, lpAmountWei);
-        toast.info('Approving LP tokens...');
+      if (allowance < stakedAmountWei) {
+        const approveTx = await pairContract.approve(routerAddress, stakedAmountWei);
+        toast.info('Approving Staked tokens...');
         await approveTx.wait();
       }
 
-      // Remove liquidity
+      // Unstake risk tokens
       const router = new Contract(routerAddress, UNISWAP_V2_ROUTER_ABI, signer);
       const tx = await router.removeLiquidity(
         tokenA,
         tokenB,
-        lpAmountWei,
+        stakedAmountWei,
         0, // amountAMin (accept any amount)
         0, // amountBMin (accept any amount)
         address,
         deadline,
       );
 
-      toast.info('Removing liquidity...');
+      toast.info('Unstaking risk tokens...');
       await tx.wait();
-      toast.success('Liquidity removed');
+      toast.success('Risk tokens unstaked');
       
       await refreshData();
     } catch (error: any) {
-      console.error('Failed to remove liquidity:', error);
-      toast.error(error.reason || 'Failed to remove liquidity');
+      console.error('Failed to unstake risk tokens:', error);
+      toast.error(error.reason || 'Failed to unstake risk tokens');
     }
   };
 
@@ -1225,8 +1223,8 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
     swapExactTokensForTokens,
     getAmountsOut,
     getTokenBalance,
-    addLiquidity,
-    removeLiquidity,
+    stakeRiskTokens,
+    unstakeRiskTokens,
     getPairReserves,
   };
 
