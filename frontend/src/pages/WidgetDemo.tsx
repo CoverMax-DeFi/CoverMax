@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,7 @@ import Logo from '@/assets/images/CoverMax.svg';
 import { Link } from 'react-router-dom';
 import { useWeb3 } from '@/context/PrivyWeb3Context';
 import NetworkSelector from '@/components/NetworkSelector';
-import { Code, Zap, TrendingUp, Users, DollarSign, Target } from 'lucide-react';
+import { Code, Zap, TrendingUp, Users, DollarSign, Target, Brain } from 'lucide-react';
 
 interface ProtocolDemo {
   name: string;
@@ -32,12 +32,23 @@ const demoProtocols: ProtocolDemo[] = [
 const WidgetDemo: React.FC = () => {
   const [selectedProtocol, setSelectedProtocol] = useState<ProtocolDemo>(demoProtocols[0]);
   const [showCode, setShowCode] = useState(false);
+  const [currentOdds, setCurrentOdds] = useState({ hack: 1.02, safe: 1.25 });
+  const [seniorPrice, setSeniorPrice] = useState('1.00');
+  const [juniorPrice, setJuniorPrice] = useState('1.00');
+  const [aiRecommendation, setAiRecommendation] = useState<{ betType: 'hack' | 'safe'; confidence: number } | null>(null);
   const { isConnected, address, connectWallet, disconnectWallet } = useWeb3();
 
   // Format address for display
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
+  
+  // Memoize the callback to prevent infinite re-renders
+  const handleOddsUpdate = useCallback((odds: { hack: number; safe: number }, senior: string, junior: string) => {
+    setCurrentOdds(odds);
+    setSeniorPrice(senior);
+    setJuniorPrice(junior);
+  }, []);
 
   const codeExample = `import PredictionMarketWidget from '@/components/PredictionMarketWidget';
 
@@ -128,6 +139,8 @@ const WidgetDemo: React.FC = () => {
               minBet="10"
               maxPayout="1000"
               supportedAssets={selectedProtocol.supportedAssets}
+              onOddsUpdate={handleOddsUpdate}
+              aiRecommendation={aiRecommendation}
             />
           </div>
 
@@ -160,28 +173,31 @@ const WidgetDemo: React.FC = () => {
 
             <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-white text-lg">Why This Works</CardTitle>
+                <CardTitle className="text-white text-lg flex items-center gap-2">
+                  <Brain className="h-5 w-5 text-purple-400" />
+                  AI-Powered Analysis
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-slate-300">
                 <div className="flex items-start gap-3">
                   <Target className="h-5 w-5 text-green-400 mt-0.5" />
                   <div>
-                    <h4 className="font-medium text-white">Feels Like Speculation</h4>
-                    <p className="text-sm">Users love betting on outcomes - no complex insurance terminology</p>
+                    <h4 className="font-medium text-white">Smart Recommendations</h4>
+                    <p className="text-sm">AI analyzes real-time market data to suggest optimal bets</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <DollarSign className="h-5 w-5 text-blue-400 mt-0.5" />
                   <div>
-                    <h4 className="font-medium text-white">Clear Profit Motive</h4>
-                    <p className="text-sm">Show exact payouts and odds to drive engagement</p>
+                    <h4 className="font-medium text-white">Expected Value Calculations</h4>
+                    <p className="text-sm">Shows mathematical edge for each betting opportunity</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Zap className="h-5 w-5 text-purple-400 mt-0.5" />
                   <div>
-                    <h4 className="font-medium text-white">Embeddable Anywhere</h4>
-                    <p className="text-sm">Drop into any protocol page, forum, or dApp</p>
+                    <h4 className="font-medium text-white">Integrated Experience</h4>
+                    <p className="text-sm">One-click AI analysis built right into the widget</p>
                   </div>
                 </div>
               </CardContent>
@@ -243,7 +259,19 @@ const WidgetDemo: React.FC = () => {
           <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
-                <Target className="h-5 w-5 text-purple-400" />
+                <Brain className="h-5 w-5 text-purple-400" />
+                AI-Powered Decisions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-slate-300">
+              <p>Advanced AI analyzes market data, protocol risks, and historical patterns to provide intelligent betting recommendations.</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Target className="h-5 w-5 text-green-400" />
                 Mass Market Appeal
               </CardTitle>
             </CardHeader>
@@ -260,19 +288,7 @@ const WidgetDemo: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="text-slate-300">
-              <p>Embeddable widgets spread organically. Each protocol becomes a distribution channel for CoverMax.</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-green-400" />
-                Hidden Insurance
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-slate-300">
-              <p>Users get insurance coverage without realizing it. Behind the scenes, CoverMax handles all the complexity.</p>
+              <p>Embeddable widgets with AI assistance spread organically. Each protocol becomes a distribution channel for CoverMax.</p>
             </CardContent>
           </Card>
         </div>

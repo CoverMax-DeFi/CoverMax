@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ChatGroq } from '@langchain/groq';
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import {
   Shield,
   TrendingUp,
@@ -11,7 +13,12 @@ import {
   RefreshCw,
   AlertCircle,
   Clock,
-  Target
+  Target,
+  Brain,
+  Sparkles,
+  Loader2,
+  ChevronRight,
+  AlertTriangle
 } from 'lucide-react';
 import { useWeb3 } from '@/context/PrivyWeb3Context';
 import { Phase, ContractName, getContractAddress } from '@/config/contracts';
@@ -24,6 +31,8 @@ interface PredictionMarketWidgetProps {
   minBet: string;
   maxPayout: string;
   supportedAssets: ('aUSDC' | 'cUSDT')[];
+  onOddsUpdate?: (odds: { hack: number; safe: number }, seniorPrice: string, juniorPrice: string) => void;
+  aiRecommendation?: { betType: 'hack' | 'safe'; confidence: number } | null;
 }
 
 
@@ -33,7 +42,9 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
   timeframe,
   minBet,
   maxPayout,
-  supportedAssets
+  supportedAssets,
+  onOddsUpdate,
+  aiRecommendation
 }) => {
   const {
     isConnected,
@@ -59,6 +70,18 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
   const [pricesLoading, setPricesLoading] = useState(false);
   const [seniorPrice, setSeniorPrice] = useState('1.00');
   const [juniorPrice, setJuniorPrice] = useState('1.00');
+  const lastOddsUpdate = useRef({ hack: 0, safe: 0, senior: '', junior: '' });
+  
+  // AI Analysis states
+  const [showAIAnalysis, setShowAIAnalysis] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<{
+    recommendation: 'hack' | 'safe';
+    confidence: number;
+    reasoning: string[];
+    expectedValue: number;
+    riskLevel: 'low' | 'medium' | 'high';
+  } | null>(null);
 
   // Fetch token prices and pool reserves from Uniswap pair
   useEffect(() => {
@@ -128,21 +151,164 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
       const hackOdds = 1.0 / seniorPriceNum; // What you get back per $1 bet on hack
       const safeOdds = 1.0 / juniorPriceNum; // What you get back per $1 bet on safe
 
-      setCurrentOdds({
+      const newOdds = {
         hack: hackOdds, // Allow odds below 1.0 (losing bets)
         safe: safeOdds  // Allow odds below 1.0 (losing bets)
-      });
+      };
+      setCurrentOdds(newOdds);
+      
+      // Notify parent component - only if values actually changed
+      if (onOddsUpdate && (
+        lastOddsUpdate.current.hack !== hackOdds ||
+        lastOddsUpdate.current.safe !== safeOdds ||
+        lastOddsUpdate.current.senior !== seniorPrice ||
+        lastOddsUpdate.current.junior !== juniorPrice
+      )) {
+        onOddsUpdate(newOdds, seniorPrice, juniorPrice);
+        lastOddsUpdate.current = { hack: hackOdds, safe: safeOdds, senior: seniorPrice, junior: juniorPrice };
+      }
     } else {
       // Fallback to default odds if prices aren't loaded
-      setCurrentOdds({
+      const defaultOdds = {
         hack: 1.02,
         safe: 1.25
-      });
+      };
+      setCurrentOdds(defaultOdds);
+      
+      // Only call if values changed
+      if (onOddsUpdate && (
+        lastOddsUpdate.current.hack !== defaultOdds.hack ||
+        lastOddsUpdate.current.safe !== defaultOdds.safe ||
+        lastOddsUpdate.current.senior !== seniorPrice ||
+        lastOddsUpdate.current.junior !== juniorPrice
+      )) {
+        onOddsUpdate(defaultOdds, seniorPrice, juniorPrice);
+        lastOddsUpdate.current = { hack: defaultOdds.hack, safe: defaultOdds.safe, senior: seniorPrice, junior: juniorPrice };
+      }
     }
-  }, [seniorPrice, juniorPrice]);
+  }, [seniorPrice, juniorPrice]); // Remove onOddsUpdate from dependencies to prevent infinite loop
 
   const handleBetSelection = (bet: 'hack' | 'safe') => {
     setSelectedBet(bet);
+  };
+  
+  // Apply AI recommendation if provided
+  useEffect(() => {
+    if (aiRecommendation) {
+      setSelectedBet(aiRecommendation.betType);
+    }
+  }, [aiRecommendation]);
+  
+  // Initialize Groq AI model
+  const initializeAI = () => {
+    const groqApiKey = import.meta.env.VITE_GROQ_API_KEY || '';
+    if (!groqApiKey) {
+      console.warn('GROQ API key not found. Add VITE_GROQ_API_KEY to your .env file');
+      return null;
+    }
+    
+    return new ChatGroq({
+      apiKey: groqApiKey,
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.3,
+      maxTokens: 1000
+    });
+  };
+  
+  // Analyze betting opportunity with AI
+  const analyzeWithAI = async () => {
+    setIsAnalyzing(true);
+    
+    try {
+      const model = initializeAI();
+      if (!model) {
+        // Fallback to mathematical analysis
+        const fallbackAnalysis = generateMathAnalysis();
+        setAiAnalysis(fallbackAnalysis);
+        setShowAIAnalysis(true);
+        return;
+      }
+      
+      // Calculate market implied probabilities
+      const totalValue = parseFloat(seniorPrice) + parseFloat(juniorPrice);
+      const hackProbability = (parseFloat(seniorPrice) / totalValue) * 100;
+      const safeProbability = (parseFloat(juniorPrice) / totalValue) * 100;
+      
+      const systemPrompt = new SystemMessage(`You are an expert DeFi risk analyst. Analyze protocol security risks and provide betting recommendations.
+Respond in JSON format with these exact fields:
+{
+  "recommendation": "hack" or "safe",
+  "confidence": number between 0-100,
+  "reasoning": [array of 3-4 key reasons],
+  "riskLevel": "low", "medium", or "high",
+  "expectedValue": number (positive means profitable)
+}`);
+
+      const userPrompt = new HumanMessage(`Analyze this betting opportunity:
+Protocol: ${protocolName}
+HACK bet odds: ${currentOdds.hack.toFixed(3)}x
+SAFE bet odds: ${currentOdds.safe.toFixed(3)}x
+Market implied hack probability: ${hackProbability.toFixed(1)}%
+Market implied safe probability: ${safeProbability.toFixed(1)}%
+
+Calculate expected value for each bet and recommend the best option.`);
+
+      const response = await model.invoke([systemPrompt, userPrompt]);
+      
+      // Parse AI response
+      try {
+        const content = response.content.toString();
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          setAiAnalysis(parsed);
+          setShowAIAnalysis(true);
+          
+          // Auto-select the recommended bet
+          setSelectedBet(parsed.recommendation);
+        }
+      } catch (parseError) {
+        // Fallback analysis
+        const fallbackAnalysis = generateMathAnalysis();
+        setAiAnalysis(fallbackAnalysis);
+        setShowAIAnalysis(true);
+      }
+      
+    } catch (error) {
+      console.error('AI analysis failed:', error);
+      const fallbackAnalysis = generateMathAnalysis();
+      setAiAnalysis(fallbackAnalysis);
+      setShowAIAnalysis(true);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+  
+  // Generate mathematical analysis as fallback
+  const generateMathAnalysis = () => {
+    const seniorPriceNum = parseFloat(seniorPrice);
+    const juniorPriceNum = parseFloat(juniorPrice);
+    const totalValue = seniorPriceNum + juniorPriceNum;
+    const hackProb = (seniorPriceNum / totalValue);
+    const safeProb = (juniorPriceNum / totalValue);
+    
+    const hackEV = hackProb * currentOdds.hack - 1;
+    const safeEV = safeProb * currentOdds.safe - 1;
+    
+    const recommendation = hackEV > safeEV ? 'hack' : 'safe';
+    const confidence = Math.min(95, Math.abs(hackEV - safeEV) * 100 + 50);
+    
+    return {
+      recommendation: recommendation as 'hack' | 'safe',
+      confidence: Math.round(confidence),
+      reasoning: [
+        `${recommendation === 'hack' ? 'HACK' : 'SAFE'} bet has ${recommendation === 'hack' ? hackEV > 0 ? 'positive' : 'less negative' : safeEV > 0 ? 'positive' : 'less negative'} expected value`,
+        `Market implies ${(recommendation === 'hack' ? hackProb : safeProb) * 100}% probability for this outcome`,
+        `Potential return of ${recommendation === 'hack' ? currentOdds.hack.toFixed(2) : currentOdds.safe.toFixed(2)}x on investment`
+      ],
+      expectedValue: parseFloat((recommendation === 'hack' ? hackEV : safeEV).toFixed(3)),
+      riskLevel: Math.abs(recommendation === 'hack' ? hackEV : safeEV) > 0.1 ? 'low' : 'medium' as 'low' | 'medium' | 'high'
+    };
   };
 
   const calculatePayout = (amount: string, odds: number) => {
@@ -372,6 +538,78 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
             Real betting with risk tokens • Earn up to {currentOdds.safe.toFixed(2)}x returns
           </p>
         </div>
+        
+        {/* AI Analysis Button or Results */}
+        {!showAIAnalysis ? (
+          <Button
+            onClick={analyzeWithAI}
+            disabled={isAnalyzing}
+            variant="outline"
+            className="w-full bg-purple-600/20 hover:bg-purple-600/30 border-purple-500/50 text-purple-300"
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Analyzing Market Data...
+              </>
+            ) : (
+              <>
+                <Brain className="h-4 w-4 mr-2" />
+                Get AI Betting Recommendation
+              </>
+            )}
+          </Button>
+        ) : aiAnalysis && (
+          <div className={`p-3 rounded-lg border ${
+            aiAnalysis.recommendation === 'hack' 
+              ? 'bg-red-500/10 border-red-500/50' 
+              : 'bg-green-500/10 border-green-500/50'
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple-400" />
+                <span className="text-sm font-semibold text-white">
+                  AI Recommends: {aiAnalysis.recommendation === 'hack' ? 'HACK' : 'SAFE'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">Confidence:</span>
+                <span className="text-sm font-bold text-white">{aiAnalysis.confidence}%</span>
+              </div>
+            </div>
+            
+            {/* Expected Value */}
+            <div className="bg-slate-900/50 rounded p-2 mb-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-400">Expected Value:</span>
+                <span className={`font-mono font-bold ${
+                  aiAnalysis.expectedValue > 0 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {aiAnalysis.expectedValue > 0 ? '+' : ''}{(aiAnalysis.expectedValue * 100).toFixed(1)}%
+                </span>
+              </div>
+            </div>
+            
+            {/* Key Reasoning Points */}
+            <div className="space-y-1 mb-2">
+              {aiAnalysis.reasoning.slice(0, 2).map((reason, index) => (
+                <div key={index} className="flex items-start gap-1">
+                  <ChevronRight className="h-3 w-3 text-purple-400 mt-0.5 flex-shrink-0" />
+                  <span className="text-xs text-slate-300">{reason}</span>
+                </div>
+              ))}
+            </div>
+            
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowAIAnalysis(false)}
+              className="w-full text-xs text-slate-400 hover:text-slate-300"
+            >
+              New Analysis
+            </Button>
+          </div>
+        )}
 
         {/* Asset Selection */}
         <div>
@@ -403,9 +641,14 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
           {/* YES - Gets Hacked (Safety Strategy) */}
           <button
             onClick={() => handleBetSelection('hack')}
-            className={`p-4 rounded-lg border-2 transition-all ${getBetColorClass('hack')}`}
+            className={`p-4 rounded-lg border-2 transition-all relative ${getBetColorClass('hack')}`}
             disabled={Number(vaultInfo.currentPhase) !== Phase.DEPOSIT}
           >
+            {aiAnalysis?.recommendation === 'hack' && showAIAnalysis && (
+              <div className="absolute -top-2 -right-2 bg-purple-500 rounded-full p-1">
+                <Sparkles className="h-3 w-3 text-white" />
+              </div>
+            )}
             <div className="text-center">
               <Shield className="w-6 h-6 text-red-400 mx-auto mb-2" />
               <div className="text-white font-bold">YES</div>
@@ -420,9 +663,14 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
           {/* NO - Stays Safe (Upside Strategy) */}
           <button
             onClick={() => handleBetSelection('safe')}
-            className={`p-4 rounded-lg border-2 transition-all ${getBetColorClass('safe')}`}
+            className={`p-4 rounded-lg border-2 transition-all relative ${getBetColorClass('safe')}`}
             disabled={Number(vaultInfo.currentPhase) !== Phase.DEPOSIT}
           >
+            {aiAnalysis?.recommendation === 'safe' && showAIAnalysis && (
+              <div className="absolute -top-2 -right-2 bg-purple-500 rounded-full p-1">
+                <Sparkles className="h-3 w-3 text-white" />
+              </div>
+            )}
             <div className="text-center">
               <TrendingUp className="w-6 h-6 text-green-400 mx-auto mb-2" />
               <div className="text-white font-bold">NO</div>
