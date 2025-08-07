@@ -310,7 +310,7 @@ contract RiskVault is Ownable, ReentrancyGuard {
         nonReentrant
     {
         if (depositAmount <= MIN_DEPOSIT_AMOUNT) revert InsufficientDepositAmount();
-        if (depositAmount & 1 != 0) revert UnevenDepositAmount(); // Must be even for equal token split
+        if ((depositAmount & 1) != 0) revert UnevenDepositAmount(); // Must be even for equal token split
         if (!_isAssetSupported(asset)) revert UnsupportedAsset();
 
         // Transfer asset from depositor
