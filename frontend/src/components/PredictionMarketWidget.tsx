@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChatGroq } from '@langchain/groq';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { Client, AccountBalanceQuery, AccountId } from '@hashgraph/sdk';
 import {
   Shield,
   TrendingUp,
@@ -18,7 +19,9 @@ import {
   Sparkles,
   Loader2,
   ChevronRight,
-  AlertTriangle
+  AlertTriangle,
+  Wallet,
+  Eye
 } from 'lucide-react';
 import { useWeb3 } from '@/context/PrivyWeb3Context';
 import { Phase, ContractName, getContractAddress } from '@/config/contracts';
@@ -82,6 +85,14 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
     expectedValue: number;
     riskLevel: 'low' | 'medium' | 'high';
   } | null>(null);
+  
+  // Wallet holdings state
+  const [walletAnalysis, setWalletAnalysis] = useState<{
+    totalValue: number;
+    riskExposure: string;
+    recommendation: string;
+  } | null>(null);
+  const [showWalletInfo, setShowWalletInfo] = useState(false);
 
   // Fetch token prices and pool reserves from Uniswap pair
   useEffect(() => {
@@ -244,14 +255,24 @@ Respond in JSON format with these exact fields:
   "expectedValue": number (positive means profitable)
 }`);
 
+      // Include wallet context if available
+      const seniorBalance = Number(balances.seniorTokens) / 1e18;
+      const juniorBalance = Number(balances.juniorTokens) / 1e18;
+      const hasPosition = seniorBalance > 0 || juniorBalance > 0;
+      
       const userPrompt = new HumanMessage(`Analyze this betting opportunity:
 Protocol: ${protocolName}
 HACK bet odds: ${currentOdds.hack.toFixed(3)}x
 SAFE bet odds: ${currentOdds.safe.toFixed(3)}x
 Market implied hack probability: ${hackProbability.toFixed(1)}%
 Market implied safe probability: ${safeProbability.toFixed(1)}%
+${hasPosition ? `
+Current Position:
+- Senior tokens: ${seniorBalance.toFixed(2)} (${seniorBalance > juniorBalance ? 'overweight' : 'underweight'})
+- Junior tokens: ${juniorBalance.toFixed(2)} (${juniorBalance > seniorBalance ? 'overweight' : 'underweight'})
+` : 'No current position'}
 
-Calculate expected value for each bet and recommend the best option.`);
+Calculate expected value for each bet and recommend the best option${hasPosition ? ' considering the existing position' : ''}.`);
 
       const response = await model.invoke([systemPrompt, userPrompt]);
       
@@ -281,6 +302,75 @@ Calculate expected value for each bet and recommend the best option.`);
       setShowAIAnalysis(true);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+  
+  // Analyze user's wallet holdings with AI
+  const analyzeWalletHoldings = async () => {
+    try {
+      // Calculate current position values
+      const seniorTokenValue = Number(balances.seniorTokens) / 1e18 * parseFloat(seniorPrice);
+      const juniorTokenValue = Number(balances.juniorTokens) / 1e18 * parseFloat(juniorPrice);
+      const totalPositionValue = seniorTokenValue + juniorTokenValue;
+      
+      // Calculate available liquidity
+      const aUSDCBalance = Number(balances.aUSDC) / 1e18;
+      const cUSDTBalance = Number(balances.cUSDT) / 1e18;
+      const totalLiquidity = aUSDCBalance + cUSDTBalance;
+      
+      // Determine risk exposure
+      let riskExposure = 'Balanced';
+      let recommendation = '';
+      
+      if (seniorTokenValue > juniorTokenValue * 2) {
+        riskExposure = 'Conservative (Heavy Senior)';
+        recommendation = 'Consider adding junior tokens for higher yield potential';
+      } else if (juniorTokenValue > seniorTokenValue * 2) {
+        riskExposure = 'Aggressive (Heavy Junior)';
+        recommendation = 'Consider adding senior tokens for downside protection';
+      } else if (totalPositionValue < 10) {
+        riskExposure = 'No significant position';
+        recommendation = 'Start with a small bet to test the market';
+      }
+      
+      // AI-enhanced analysis if available
+      const model = initializeAI();
+      if (model && totalPositionValue > 0) {
+        try {
+          const prompt = new HumanMessage(`Analyze this DeFi position:
+- Senior tokens: ${(Number(balances.seniorTokens) / 1e18).toFixed(2)} ($${seniorTokenValue.toFixed(2)})
+- Junior tokens: ${(Number(balances.juniorTokens) / 1e18).toFixed(2)} ($${juniorTokenValue.toFixed(2)})
+- Available liquidity: $${totalLiquidity.toFixed(2)}
+- Protocol: ${protocolName}
+
+Provide a brief risk assessment and recommendation in 1-2 sentences.`);
+          
+          const response = await model.invoke([prompt]);
+          const aiRecommendation = response.content.toString();
+          
+          if (aiRecommendation) {
+            recommendation = aiRecommendation;
+          }
+        } catch (error) {
+          console.error('AI wallet analysis failed:', error);
+        }
+      }
+      
+      setWalletAnalysis({
+        totalValue: totalPositionValue + totalLiquidity,
+        riskExposure,
+        recommendation
+      });
+      
+      return {
+        totalValue: totalPositionValue + totalLiquidity,
+        riskExposure,
+        recommendation
+      };
+      
+    } catch (error) {
+      console.error('Wallet analysis failed:', error);
+      return null;
     }
   };
   
@@ -809,22 +899,90 @@ Calculate expected value for each bet and recommend the best option.`);
           )}
         </Button>
 
-        {/* Your Positions */}
-        {(Number(balances.seniorTokens) > 0 || Number(balances.juniorTokens) > 0) && (
-          <div className="bg-slate-700/30 rounded-lg p-3">
-            <div className="text-sm text-slate-300 mb-2 font-semibold">Your Positions:</div>
-            <div className="space-y-1 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Senior Tokens (Safe):</span>
-                <span className="text-blue-400">{formatTokenAmount(balances.seniorTokens)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Junior Tokens (Risk):</span>
-                <span className="text-amber-400">{formatTokenAmount(balances.juniorTokens)}</span>
-              </div>
+        {/* Wallet Analysis Section */}
+        <div className="bg-slate-700/30 rounded-lg p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-purple-400" />
+              <span className="text-sm text-white font-semibold">Your Portfolio</span>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={async () => {
+                if (!showWalletInfo) {
+                  await analyzeWalletHoldings();
+                }
+                setShowWalletInfo(!showWalletInfo);
+              }}
+              className="text-xs text-purple-300 hover:text-purple-200 p-1"
+            >
+              <Eye className="h-3 w-3 mr-1" />
+              {showWalletInfo ? 'Hide' : 'Analyze'}
+            </Button>
+          </div>
+          
+          {/* Basic Position Info */}
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between">
+              <span className="text-slate-400">Senior Tokens:</span>
+              <span className="text-blue-400">
+                {formatTokenAmount(balances.seniorTokens)} 
+                {Number(balances.seniorTokens) > 0 && (
+                  <span className="text-slate-500 ml-1">
+                    (${(Number(balances.seniorTokens) / 1e18 * parseFloat(seniorPrice)).toFixed(2)})
+                  </span>
+                )}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Junior Tokens:</span>
+              <span className="text-amber-400">
+                {formatTokenAmount(balances.juniorTokens)}
+                {Number(balances.juniorTokens) > 0 && (
+                  <span className="text-slate-500 ml-1">
+                    (${(Number(balances.juniorTokens) / 1e18 * parseFloat(juniorPrice)).toFixed(2)})
+                  </span>
+                )}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Available {assetType}:</span>
+              <span className="text-green-400">{formatTokenAmount(balances[assetType])}</span>
             </div>
           </div>
-        )}
+          
+          {/* AI Wallet Analysis */}
+          {showWalletInfo && walletAnalysis && (
+            <div className="mt-3 pt-3 border-t border-slate-600 space-y-2">
+              <div className="bg-slate-800/50 rounded p-2">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs text-slate-400">Total Portfolio Value:</span>
+                  <span className="text-sm font-bold text-white">${walletAnalysis.totalValue.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-slate-400">Risk Profile:</span>
+                  <span className={`text-xs font-medium ${
+                    walletAnalysis.riskExposure.includes('Conservative') ? 'text-blue-400' :
+                    walletAnalysis.riskExposure.includes('Aggressive') ? 'text-red-400' :
+                    'text-green-400'
+                  }`}>
+                    {walletAnalysis.riskExposure}
+                  </span>
+                </div>
+              </div>
+              
+              {walletAnalysis.recommendation && (
+                <div className="bg-purple-500/10 border border-purple-500/30 rounded p-2">
+                  <div className="flex items-start gap-2">
+                    <Brain className="h-3 w-3 text-purple-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-purple-200">{walletAnalysis.recommendation}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Stats Footer */}
         <div className="flex justify-between text-xs text-slate-500 pt-2 border-t border-slate-700">
