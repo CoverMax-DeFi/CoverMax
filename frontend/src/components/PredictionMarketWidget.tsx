@@ -32,11 +32,27 @@ interface PredictionMarketWidgetProps {
   timeframe: string;
   minBet: string;
   maxPayout: string;
-  supportedAssets: ('aUSDC' | 'cUSDT')[];
+  supportedAssets: ('aUSDC' | 'bUSDC' | 'cUSDT')[];
   onOddsUpdate?: (odds: { hack: number; safe: number }, seniorPrice: string, juniorPrice: string) => void;
   aiRecommendation?: { betType: 'hack' | 'safe'; confidence: number } | null;
 }
 
+
+// Helper function to map UI asset types to backend asset types
+const mapToBackendAsset = (asset: 'aUSDC' | 'bUSDC' | 'cUSDT'): 'aUSDC' | 'cUSDT' => {
+  if (asset === 'bUSDC') return 'aUSDC'; // bUSDC maps to aUSDC backend
+  return asset as 'aUSDC' | 'cUSDT';
+};
+
+// Helper function to get display name for asset
+const getAssetDisplayName = (asset: 'aUSDC' | 'bUSDC' | 'cUSDT'): string => {
+  switch (asset) {
+    case 'bUSDC': return 'Bonzo USDC';
+    case 'aUSDC': return 'Aave USDC';
+    case 'cUSDT': return 'Compound USDT';
+    default: return asset;
+  }
+};
 
 const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
   protocolName,
@@ -66,7 +82,7 @@ const PredictionMarketWidget: React.FC<PredictionMarketWidgetProps> = ({
 
   const [selectedBet, setSelectedBet] = useState<'hack' | 'safe' | null>(null);
   const [betAmount, setBetAmount] = useState('');
-  const [assetType, setAssetType] = useState<'aUSDC' | 'cUSDT'>(supportedAssets[0]);
+  const [assetType, setAssetType] = useState<'aUSDC' | 'bUSDC' | 'cUSDT'>(supportedAssets[0]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentOdds, setCurrentOdds] = useState({ hack: 1.02, safe: 1.25 });
   const [pricesLoading, setPricesLoading] = useState(false);
@@ -451,7 +467,7 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
         { type: 'defi', value: 2000, percentage: 16.7 }, // UNI, AAVE, etc.
         { type: 'meme', value: 1000, percentage: 8.3 }, // DOGE, SHIB, PEPE
       ],
-      defiProtocols: ['Aave', 'Uniswap', 'Compound'],
+      defiProtocols: ['Bonzo', 'Uniswap', 'Compound'],
       nftCount: 5,
       transactionHistory: 150,
       avgTransactionSize: 500
@@ -649,7 +665,7 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
 
     try {
       // First, deposit to get tokens (50/50 split)
-      await depositAsset(assetType, betAmount);
+      await depositAsset(mapToBackendAsset(assetType), betAmount);
 
       if (selectedBet === 'hack') {
         // HACK bet = Protocol will get hacked = MAX SAFETY strategy
@@ -881,10 +897,10 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
                 <div className="text-center">
                   <div className="font-semibold text-sm">{asset}</div>
                   <div className="text-xs opacity-90">
-                    {asset === 'aUSDC' ? 'Aave USDC' : 'Compound USDT'}
+                    {getAssetDisplayName(asset)}
                   </div>
                   <div className="text-xs mt-1 font-medium">
-                    Balance: {formatTokenAmount(balances[asset])}
+                    Balance: {formatTokenAmount(balances[mapToBackendAsset(asset)])}
                   </div>
                 </div>
               </button>
@@ -955,13 +971,13 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
               variant="ghost"
               size="sm"
               className="absolute right-2 top-1/2 -translate-y-1/2 h-6 px-2 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
-              onClick={() => setBetAmount((parseFloat(ethers.formatEther(balances[assetType]))).toString())}
+              onClick={() => setBetAmount((parseFloat(ethers.formatEther(balances[mapToBackendAsset(assetType)]))).toString())}
             >
               Max
             </Button>
           </div>
           <div className="flex justify-between text-sm text-slate-300">
-            <span className="font-medium">Available: {formatTokenAmount(balances[assetType])}</span>
+            <span className="font-medium">Available: {formatTokenAmount(balances[mapToBackendAsset(assetType)])}</span>
             <span className="text-slate-500">Min: {minBet}</span>
           </div>
         </div>
@@ -1098,7 +1114,7 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400">Available {assetType}:</span>
-              <span className="text-green-400">{formatTokenAmount(balances[assetType])}</span>
+              <span className="text-green-400">{formatTokenAmount(balances[mapToBackendAsset(assetType)])}</span>
             </div>
           </div>
 

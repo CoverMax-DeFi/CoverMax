@@ -13,14 +13,14 @@ import { Zap, TrendingUp, DollarSign, Target, Brain } from 'lucide-react';
 interface ProtocolDemo {
   name: string;
   logo: string;
-  supportedAssets: ('aUSDC' | 'cUSDT')[];
+  supportedAssets: ('aUSDC' | 'bUSDC' | 'cUSDT')[];
 }
 
 const demoProtocols: ProtocolDemo[] = [
   {
-    name: 'Aave',
-    logo: '🏦',
-    supportedAssets: ['aUSDC']  // Aave only supports aUSDC
+    name: 'Bonzo',
+    logo: '🟣',
+    supportedAssets: ['bUSDC']  // bonzo.finance supports bUSDC
   },
   {
     name: 'Compound',
@@ -36,7 +36,7 @@ const WidgetDemo: React.FC = () => {
   const [aiRecommendation, setAiRecommendation] = useState<{ betType: 'hack' | 'safe'; confidence: number } | null>(null);
   const { isConnected, address, connectWallet, disconnectWallet, vaultInfo, balances } = useWeb3();
 
-  // Use Aave as the default protocol
+  // Use bonzo.finance as the default protocol
   const selectedProtocol = demoProtocols[0];
 
   // Format address for display
