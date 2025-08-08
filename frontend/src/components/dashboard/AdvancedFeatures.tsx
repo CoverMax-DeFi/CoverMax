@@ -80,12 +80,6 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="text-center p-3 bg-slate-700/30 rounded-lg border border-slate-600">
-            <p className="text-white font-medium">Available tokens:</p>
-            <p className="text-slate-300 text-sm">
-              {formatNumber(seniorBalance, 4)} SENIOR + {formatNumber(juniorBalance, 4)} JUNIOR
-            </p>
-          </div>
 
           <Button
             onClick={handleOptimalStaking}
@@ -188,11 +182,6 @@ const AdvancedFeatures: React.FC<AdvancedFeaturesProps> = ({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="text-center p-3 bg-slate-700/50 rounded-lg border border-slate-600/50">
-            <p className="text-sm text-slate-300 mb-1 font-medium">Current Staked Position</p>
-            <p className="text-xl font-bold text-purple-400">{formatNumber(lpBalance)} Staked</p>
-            <p className="text-xs text-slate-400 font-medium">Earning rewards</p>
-          </div>
 
           <div className="space-y-2">
             <Label className="text-slate-200 font-medium">Amount to Unstake</Label>
