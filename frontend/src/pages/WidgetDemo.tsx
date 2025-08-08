@@ -35,7 +35,7 @@ const WidgetDemo: React.FC = () => {
   const [juniorPrice, setJuniorPrice] = useState('1.00');
   const [aiRecommendation, setAiRecommendation] = useState<{ betType: 'hack' | 'safe'; confidence: number } | null>(null);
   const { isConnected, address, connectWallet, disconnectWallet, vaultInfo, balances } = useWeb3();
-  
+
   // Use Aave as the default protocol
   const selectedProtocol = demoProtocols[0];
 
@@ -43,7 +43,7 @@ const WidgetDemo: React.FC = () => {
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
-  
+
   // Memoize the callback to prevent infinite re-renders
   const handleOddsUpdate = useCallback((odds: { hack: number; safe: number }, senior: string, junior: string) => {
     setCurrentOdds(odds);
@@ -109,7 +109,7 @@ const WidgetDemo: React.FC = () => {
             Smart DeFi Insurance Made Simple
           </h1>
           <p className="text-slate-300 text-xl max-w-3xl mx-auto mb-6 leading-relaxed">
-            Get <span className="text-purple-400 font-semibold">AI-powered recommendations</span> that analyze your portfolio to suggest optimal protection or yield strategies. 
+            Get <span className="text-purple-400 font-semibold">AI-powered recommendations</span> that analyze your portfolio to suggest optimal protection or yield strategies.
             No complex insurance jargon - just smart betting with real returns.
           </p>
           <div className="flex justify-center items-center gap-6 text-sm">
@@ -148,44 +148,6 @@ const WidgetDemo: React.FC = () => {
           />
         </div>
 
-        {/* Protocol Stats */}
-        {isConnected && (
-          <div className="bg-slate-800/30 border border-slate-700 rounded-lg p-4 mb-8">
-            <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-blue-400" />
-              Protocol Statistics
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <div className="text-slate-400">Total Value Locked</div>
-                <div className="text-white font-bold">
-                  ${((Number(vaultInfo.aUSDCBalance) + Number(vaultInfo.cUSDTBalance)) / 1e18).toLocaleString()}
-                </div>
-              </div>
-              <div>
-                <div className="text-slate-400">Active Tokens</div>
-                <div className="text-white font-bold">
-                  {(Number(vaultInfo.totalTokensIssued) / 1e18).toLocaleString()}
-                </div>
-              </div>
-              <div>
-                <div className="text-slate-400">Your Position</div>
-                <div className="text-white font-bold">
-                  ${((Number(balances.seniorTokens) + Number(balances.juniorTokens)) / 1e18 * parseFloat(seniorPrice)).toFixed(2)}
-                </div>
-              </div>
-              <div>
-                <div className="text-slate-400">Protocol Status</div>
-                <div className={`font-bold ${
-                  vaultInfo.emergencyMode ? 'text-red-400' : 'text-green-400'
-                }`}>
-                  {vaultInfo.emergencyMode ? 'Emergency' : 'Normal'}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Key Features */}
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
@@ -199,7 +161,7 @@ const WidgetDemo: React.FC = () => {
               <p className="text-sm">AI analyzes your wallet composition and market conditions to recommend optimal betting strategies.</p>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white text-lg flex items-center gap-2">
@@ -211,7 +173,7 @@ const WidgetDemo: React.FC = () => {
               <p className="text-sm">Recommendations consider your existing positions to avoid over-concentration and optimize returns.</p>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white text-lg flex items-center gap-2">
