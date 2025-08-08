@@ -20,7 +20,8 @@ interface PositionManagementProps {
   riskProfile: { percentage: number };
   totalPortfolioValue: number;
   formatNumber: (num: number, decimals?: number) => string;
-  isExecuting: boolean;
+  isRebalancing: boolean;
+  isWithdrawing: boolean;
   onRebalance: (targetPercent: number) => void;
   onWithdraw: (asset: 'aUSDC' | 'cUSDT', amount: string) => void;
   vaultInfo: any;
@@ -30,7 +31,8 @@ const PositionManagement: React.FC<PositionManagementProps> = ({
   riskProfile,
   totalPortfolioValue,
   formatNumber,
-  isExecuting,
+  isRebalancing,
+  isWithdrawing,
   onRebalance,
   onWithdraw,
   vaultInfo,
@@ -52,7 +54,8 @@ const PositionManagement: React.FC<PositionManagementProps> = ({
 
   const handleRebalanceExecute = () => {
     onRebalance(targetSeniorPercent);
-    setIsRebalancePreview(false);
+    // Keep the preview visible during execution
+    // It will reset when the component re-renders after successful rebalancing
   };
 
   const handleWithdrawExecute = () => {
@@ -86,7 +89,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({
               <Progress value={riskProfile.percentage} className="h-3" />
             </div>
 
-            {isRebalancePreview && (
+            {(isRebalancePreview || isRebalancing) && (
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-300 font-medium">Target Allocation</span>
@@ -127,7 +130,7 @@ const PositionManagement: React.FC<PositionManagementProps> = ({
           </div>
 
           {/* Action Buttons */}
-          {isRebalancePreview ? (
+          {(isRebalancePreview || isRebalancing) ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Button
                 variant="outline"
@@ -136,16 +139,17 @@ const PositionManagement: React.FC<PositionManagementProps> = ({
                   setTargetSeniorPercent(Math.round(riskProfile.percentage));
                   setIsRebalancePreview(false);
                 }}
+                disabled={isRebalancing}
               >
                 Cancel
               </Button>
               <Button
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                 onClick={handleRebalanceExecute}
-                disabled={isExecuting}
+                disabled={isRebalancing}
               >
-                {isExecuting ? (
-                  <div className="flex items-center">
+                {isRebalancing ? (
+                  <div className="flex items-center justify-center">
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                     Rebalancing...
                   </div>
@@ -243,10 +247,10 @@ const PositionManagement: React.FC<PositionManagementProps> = ({
 
           <Button
             onClick={handleWithdrawExecute}
-            disabled={!selectedWithdrawAsset || !withdrawAssetAmount || parseFloat(withdrawAssetAmount) <= 0 || isExecuting}
+            disabled={!selectedWithdrawAsset || !withdrawAssetAmount || parseFloat(withdrawAssetAmount) <= 0 || isWithdrawing}
             className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white"
           >
-            {isExecuting ? (
+            {isWithdrawing ? (
               <div className="flex items-center">
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                 Processing...

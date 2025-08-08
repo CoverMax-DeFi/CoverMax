@@ -61,6 +61,8 @@ const Dashboard = () => {
   // State Management
   const [activeTab, setActiveTab] = useState('overview');
   const [isExecuting, setIsExecuting] = useState(false);
+  const [isRebalancing, setIsRebalancing] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   // Strategy execution
   const executeStrategy = async (strategy: 'safety' | 'upside' | 'balanced', amount: string, asset: 'aUSDC' | 'cUSDT') => {
@@ -111,7 +113,7 @@ const Dashboard = () => {
 
     if (Math.abs(percentDiff) < 1) return;
 
-    setIsExecuting(true);
+    setIsRebalancing(true);
     try {
       let amountIn: string;
       let path: string[];
@@ -148,7 +150,7 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Rebalancing failed:', error);
     } finally {
-      setIsExecuting(false);
+      setIsRebalancing(false);
     }
   };
 
@@ -156,7 +158,7 @@ const Dashboard = () => {
   const handleWithdraw = async (amount: string) => {
     if (!amount || parseFloat(amount) <= 0) return;
 
-    setIsExecuting(true);
+    setIsWithdrawing(true);
     try {
       // Simplified withdrawal logic - could be enhanced with optimal token calculation
       const halfAmount = (parseFloat(amount) / 2).toFixed(6);
@@ -165,7 +167,7 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Withdrawal failed:', error);
     } finally {
-      setIsExecuting(false);
+      setIsWithdrawing(false);
     }
   };
 
@@ -273,7 +275,7 @@ const Dashboard = () => {
           <StatCard
             title="Portfolio Value"
             value={`$${formatNumber(totalPortfolioValue)}`}
-            description={`${formatNumber(userSharePercent, 4)}% of protocol`}
+            description={`Available: $${formatNumber(aUSDCBalance + cUSDTBalance)} (aUSDC + cUSDT)`}
             icon={<DollarSign className="w-8 h-8 text-green-400" />}
             className="text-white"
           />
@@ -346,7 +348,8 @@ const Dashboard = () => {
               riskProfile={riskProfile}
               totalPortfolioValue={totalPortfolioValue}
               formatNumber={formatNumber}
-              isExecuting={isExecuting}
+              isRebalancing={isRebalancing}
+              isWithdrawing={isWithdrawing}
               onRebalance={handleRebalance}
               onWithdraw={handleWithdraw}
               vaultInfo={vaultInfo}
