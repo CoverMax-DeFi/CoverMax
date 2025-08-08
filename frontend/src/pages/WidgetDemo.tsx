@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import PredictionMarketWidget from '@/components/PredictionMarketWidget';
+import ProtocolCoverageCard from '@/components/ProtocolCoverageCard';
 import Logo from '@/assets/images/CoverMax.svg';
 import { Link } from 'react-router-dom';
 import { useWeb3 } from '@/context/PrivyWeb3Context';
@@ -134,18 +135,26 @@ const WidgetDemo: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Widget Demo */}
-        <div className="max-w-md mx-auto mb-12">
-          <PredictionMarketWidget
-            protocolName={selectedProtocol.name}
-            protocolLogo={selectedProtocol.logo}
-            timeframe="7 days"
-            minBet="10"
-            maxPayout="1000"
-            supportedAssets={selectedProtocol.supportedAssets}
-            onOddsUpdate={handleOddsUpdate}
-            aiRecommendation={aiRecommendation}
-          />
+        {/* Main Content - Widget and Protocol Coverage Side by Side */}
+        <div className="flex flex-col lg:flex-row gap-6 justify-center mb-12">
+          {/* Main Widget Demo */}
+          <div className="max-w-md w-full">
+            <PredictionMarketWidget
+              protocolName={selectedProtocol.name}
+              protocolLogo={selectedProtocol.logo}
+              timeframe="7 days"
+              minBet="10"
+              maxPayout="1000"
+              supportedAssets={selectedProtocol.supportedAssets}
+              onOddsUpdate={handleOddsUpdate}
+              aiRecommendation={aiRecommendation}
+            />
+          </div>
+
+          {/* Protocol Coverage Information - Right Side */}
+          <div className="max-w-sm w-full">
+            <ProtocolCoverageCard currentProtocol={selectedProtocol.name} />
+          </div>
         </div>
 
         {/* Key Features */}
