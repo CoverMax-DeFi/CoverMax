@@ -1039,13 +1039,68 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
     try {
       const amountADesired = ethers.parseEther(tokenAAmount);
       const amountBDesired = ethers.parseEther(tokenBAmount);
-      const amountAMin = amountADesired * 95n / 100n; // 5% slippage
-      const amountBMin = amountBDesired * 95n / 100n; // 5% slippage
       const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20 minutes
 
-      // Approve both tokens
+      // Check token balances first
       const tokenAContract = new Contract(tokenA, ERC20_ABI, signer);
       const tokenBContract = new Contract(tokenB, ERC20_ABI, signer);
+      
+      const balanceA = await tokenAContract.balanceOf(address);
+      const balanceB = await tokenBContract.balanceOf(address);
+
+      // Use actual balance if requested amount is very close (within 0.01% difference)
+      let finalAmountADesired = amountADesired;
+      let finalAmountBDesired = amountBDesired;
+
+      if (balanceA < amountADesired) {
+        const diff = amountADesired - balanceA;
+        const diffPercentage = (diff * 10000n) / amountADesired; // 0.01% = 1 basis point
+        
+        if (diffPercentage <= 1n) { // If difference is <= 0.01%, use available balance
+          finalAmountADesired = balanceA;
+          console.log(`Adjusting tokenA amount from ${ethers.formatEther(amountADesired)} to ${ethers.formatEther(balanceA)} due to precision`);
+        } else {
+          let symbolA = 'Token A';
+          try {
+            symbolA = await tokenAContract.symbol();
+          } catch (e) {
+            if (tokenA === getCurrentChainAddress(ContractName.SENIOR_TOKEN)) {
+              symbolA = 'SENIOR';
+            } else if (tokenA === getCurrentChainAddress(ContractName.JUNIOR_TOKEN)) {
+              symbolA = 'JUNIOR';
+            }
+          }
+          toast.error(`Insufficient ${symbolA} balance. Required: ${ethers.formatEther(amountADesired)}, Available: ${ethers.formatEther(balanceA)}`);
+          return;
+        }
+      }
+
+      if (balanceB < amountBDesired) {
+        const diff = amountBDesired - balanceB;
+        const diffPercentage = (diff * 10000n) / amountBDesired; // 0.01% = 1 basis point
+        
+        if (diffPercentage <= 1n) { // If difference is <= 0.01%, use available balance
+          finalAmountBDesired = balanceB;
+          console.log(`Adjusting tokenB amount from ${ethers.formatEther(amountBDesired)} to ${ethers.formatEther(balanceB)} due to precision`);
+        } else {
+          let symbolB = 'Token B';
+          try {
+            symbolB = await tokenBContract.symbol();
+          } catch (e) {
+            if (tokenB === getCurrentChainAddress(ContractName.SENIOR_TOKEN)) {
+              symbolB = 'SENIOR';
+            } else if (tokenB === getCurrentChainAddress(ContractName.JUNIOR_TOKEN)) {
+              symbolB = 'JUNIOR';
+            }
+          }
+          toast.error(`Insufficient ${symbolB} balance. Required: ${ethers.formatEther(amountBDesired)}, Available: ${ethers.formatEther(balanceB)}`);
+          return;
+        }
+      }
+
+      // Update amounts and slippage calculations with final amounts
+      const amountAMin = finalAmountADesired * 95n / 100n; // 5% slippage
+      const amountBMin = finalAmountBDesired * 95n / 100n; // 5% slippage
 
       const routerAddress = getCurrentChainAddress(ContractName.UNISWAP_V2_ROUTER);
       if (!routerAddress) {
@@ -1056,8 +1111,9 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
       const allowanceA = await tokenAContract.allowance(address, routerAddress);
       const allowanceB = await tokenBContract.allowance(address, routerAddress);
 
-      if (allowanceA < amountADesired) {
-        const approveTx = await tokenAContract.approve(routerAddress, amountADesired);
+      if (allowanceA < finalAmountADesired) {
+        // Approve max amount to avoid future approval transactions
+        const approveTx = await tokenAContract.approve(routerAddress, ethers.MaxUint256);
         let symbolA = 'Token A';
         try {
           symbolA = await tokenAContract.symbol();
@@ -1073,8 +1129,9 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
         await approveTx.wait();
       }
 
-      if (allowanceB < amountBDesired) {
-        const approveTx = await tokenBContract.approve(routerAddress, amountBDesired);
+      if (allowanceB < finalAmountBDesired) {
+        // Approve max amount to avoid future approval transactions
+        const approveTx = await tokenBContract.approve(routerAddress, ethers.MaxUint256);
         let symbolB = 'Token B';
         try {
           symbolB = await tokenBContract.symbol();
@@ -1095,8 +1152,8 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
       const tx = await router.addLiquidity(
         tokenA,
         tokenB,
-        amountADesired,
-        amountBDesired,
+        finalAmountADesired,
+        finalAmountBDesired,
         amountAMin,
         amountBMin,
         address,
