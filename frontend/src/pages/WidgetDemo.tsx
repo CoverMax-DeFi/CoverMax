@@ -5,11 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import PredictionMarketWidget from '@/components/PredictionMarketWidget';
 import ProtocolCoverageCard from '@/components/ProtocolCoverageCard';
+import DCABotWidget from '@/components/DCABotWidget';
 import Logo from '@/assets/images/CoverMax.svg';
 import { Link } from 'react-router-dom';
 import { useWeb3 } from '@/context/PrivyWeb3Context';
 import NetworkSelector from '@/components/NetworkSelector';
-import { Zap, TrendingUp, DollarSign, Target, Brain } from 'lucide-react';
+import { Zap, TrendingUp, DollarSign, Target, Brain, Bot } from 'lucide-react';
 
 interface ProtocolDemo {
   name: string;
@@ -111,7 +112,7 @@ const WidgetDemo: React.FC = () => {
           </h1>
           <p className="text-slate-300 text-xl max-w-3xl mx-auto mb-6 leading-relaxed">
             Get <span className="text-purple-400 font-semibold">AI-powered recommendations</span> that analyze your portfolio to suggest optimal protection or yield strategies.
-            No complex insurance jargon - just smart betting with real returns.
+            Now featuring <span className="text-purple-400 font-semibold">automated DCA bot</span> for cheaper insurance purchases.
           </p>
           <div className="flex justify-center items-center gap-6 text-sm">
             <div className="flex items-center gap-2 text-green-400">
@@ -135,30 +136,42 @@ const WidgetDemo: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Content - Widget and Protocol Coverage Side by Side */}
-        <div className="flex flex-col lg:flex-row gap-6 justify-center mb-12">
-          {/* Main Widget Demo */}
-          <div className="max-w-md w-full">
-            <PredictionMarketWidget
-              protocolName={selectedProtocol.name}
-              protocolLogo={selectedProtocol.logo}
-              timeframe="7 days"
-              minBet="10"
-              maxPayout="1000"
-              supportedAssets={selectedProtocol.supportedAssets}
-              onOddsUpdate={handleOddsUpdate}
-              aiRecommendation={aiRecommendation}
-            />
+        {/* Main Content - Widgets Section */}
+        <div className="space-y-8 mb-12">
+          {/* Original Widgets - Side by Side */}
+          <div className="flex flex-col lg:flex-row gap-6 justify-center">
+            {/* Main Widget Demo */}
+            <div className="max-w-md w-full">
+              <PredictionMarketWidget
+                protocolName={selectedProtocol.name}
+                protocolLogo={selectedProtocol.logo}
+                timeframe="7 days"
+                minBet="10"
+                maxPayout="1000"
+                supportedAssets={selectedProtocol.supportedAssets}
+                onOddsUpdate={handleOddsUpdate}
+                aiRecommendation={aiRecommendation}
+              />
+            </div>
+
+            {/* Protocol Coverage Information - Right Side */}
+            <div className="max-w-sm w-full">
+              <ProtocolCoverageCard currentProtocol={selectedProtocol.name} />
+            </div>
           </div>
 
-          {/* Protocol Coverage Information - Right Side */}
-          <div className="max-w-sm w-full">
-            <ProtocolCoverageCard currentProtocol={selectedProtocol.name} />
+          {/* DCA Bot Widget - Full Width */}
+          <div className="flex justify-center">
+            <DCABotWidget 
+              onStrategyCreated={(strategy) => {
+                console.log('New DCA strategy created:', strategy);
+              }}
+            />
           </div>
         </div>
 
         {/* Key Features */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
+        <div className="grid md:grid-cols-4 gap-6 mb-12">
           <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white text-lg flex items-center gap-2">
@@ -168,6 +181,18 @@ const WidgetDemo: React.FC = () => {
             </CardHeader>
             <CardContent className="text-slate-300">
               <p className="text-sm">AI analyzes your wallet composition and market conditions to recommend optimal betting strategies.</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-white text-lg flex items-center gap-2">
+                <Bot className="h-5 w-5 text-purple-400" />
+                DCA Automation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-slate-300">
+              <p className="text-sm">Automated dollar-cost averaging bot helps you buy insurance tokens at optimal prices using Hedera Agent Kit.</p>
             </CardContent>
           </Card>
 
