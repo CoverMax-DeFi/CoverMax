@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChatGroq } from '@langchain/groq';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { Client, AccountBalanceQuery, AccountId } from '@hashgraph/sdk';
 import {
   Shield,
   TrendingUp,
