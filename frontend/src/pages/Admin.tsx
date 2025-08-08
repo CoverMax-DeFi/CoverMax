@@ -159,21 +159,26 @@ const Admin = () => {
 
               <div className="space-y-2">
                 <Button
-                  onClick={forcePhaseTransition}
-                  variant="outline"
-                  className="w-full bg-slate-700 hover:bg-slate-600 text-white border-slate-600 hover:border-slate-500"
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Force Phase Transition (Time Check)
-                </Button>
-                
-                <Button
                   onClick={forcePhaseTransitionImmediate}
                   variant="outline"
                   className="w-full bg-orange-700 hover:bg-orange-600 text-white border-orange-600 hover:border-orange-500"
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Force Phase Transition (Immediate)
+                </Button>
+
+                <Button
+                  onClick={startNewCycle}
+                  variant="default"
+                  disabled={Number(vaultInfo.currentPhase) !== Phase.FINAL_CLAIMS}
+                  className={`w-full ${
+                    Number(vaultInfo.currentPhase) === Phase.FINAL_CLAIMS
+                      ? 'bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700'
+                      : 'bg-slate-600 cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  Restart Cycle
                 </Button>
 
                 {Number(vaultInfo.currentPhase) === Phase.FINAL_CLAIMS && (
@@ -191,7 +196,7 @@ const Admin = () => {
               {Number(vaultInfo.currentPhase) !== Phase.FINAL_CLAIMS && (
                 <Alert className="bg-slate-700/50 border-slate-600 text-slate-300">
                   <AlertDescription>
-                    New cycles can only be started from the Final Claims phase
+                    Cycle restart is only available from the Final Claims phase
                   </AlertDescription>
                 </Alert>
               )}
