@@ -258,7 +258,7 @@ BETTING LOGIC:
 
 STRATEGIC RECOMMENDATIONS:
 - Users with MANY senior tokens are already well-protected → Consider SAFE bets to earn underwriting yield
-- Users with MANY junior tokens are already at-risk → Consider HACK bets for protection/rebalancing  
+- Users with MANY junior tokens are already at-risk → Consider HACK bets for protection/rebalancing
 - Conservative portfolios (stablecoins) → HACK bets for protection
 - Risk-taking portfolios (meme coins) → SAFE bets to act as underwriters and earn yield
 - Consider position concentration - don't over-concentrate in one token type
@@ -308,15 +308,11 @@ STRATEGIC CONSIDERATIONS:
 1. POSITION BALANCING:
    - Heavy senior token holders → Already protected → SAFE bets for yield diversification
    - Heavy junior token holders → High risk exposure → HACK bets for protection
-   
+
 2. RISK PROFILE ALIGNMENT:
    - High-risk users (meme coin holders) → SAFE bets to act as underwriters and earn yield
    - Conservative users (stablecoin heavy) → HACK bets for portfolio protection
-   
-3. AVOID OVER-CONCENTRATION:
-   - Don't recommend more senior tokens if already overweight in senior
-   - Don't recommend more junior tokens if already overweight in junior
-   - Balance protection vs yield generation
+
 
 Recommend the optimal bet considering: expected value, risk profile, AND existing position balance.`);
 
@@ -755,8 +751,10 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
         <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 mb-4">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-green-400 text-sm font-medium">
-              Protocol Active - Live Betting Available
+            <span className={`text-sm font-medium ${
+              vaultInfo.emergencyMode ? 'text-red-400' : 'text-green-400'
+            }`}>
+              {vaultInfo.emergencyMode ? 'Emergency Mode Active' : 'Live Betting Available'}
             </span>
             <span className="text-slate-400 text-xs ml-auto">
               Phase: {getPhaseNameFromBigInt(vaultInfo.currentPhase)}
@@ -868,21 +866,24 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
 
         {/* Asset Selection */}
         <div>
-          <Label className="text-slate-300 mb-2 block">Select Asset</Label>
-          <div className={`grid ${supportedAssets.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+          <Label className="text-slate-200 mb-2 block font-medium">Select Asset</Label>
+          <div className={`grid ${supportedAssets.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
             {supportedAssets.map((asset) => (
               <button
                 key={asset}
                 onClick={() => setAssetType(asset)}
                 className={`p-3 rounded-lg border transition-all ${
                   assetType === asset
-                    ? 'bg-blue-600/20 border-blue-500 text-blue-400'
-                    : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700'
+                    ? 'bg-blue-600/30 border-blue-500 text-blue-300'
+                    : 'bg-slate-700/60 border-slate-600 text-slate-200 hover:bg-slate-700/80 hover:text-white'
                 }`}
               >
                 <div className="text-center">
-                  <div className="font-semibold">{asset}</div>
-                  <div className="text-xs opacity-80">
+                  <div className="font-semibold text-sm">{asset}</div>
+                  <div className="text-xs opacity-90">
+                    {asset === 'aUSDC' ? 'Aave USDC' : 'Compound USDT'}
+                  </div>
+                  <div className="text-xs mt-1 font-medium">
                     Balance: {formatTokenAmount(balances[asset])}
                   </div>
                 </div>
@@ -938,28 +939,30 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
 
         {/* Bet Amount Input */}
         <div className="space-y-2">
-          <Label className="text-sm text-slate-300">Bet Amount ({assetType})</Label>
-          <div className="flex items-center space-x-2">
-            <div className="flex-1 relative">
-              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input
-                type="number"
-                value={betAmount}
-                onChange={(e) => setBetAmount(e.target.value)}
-                min={minBet}
-                max={maxPayout}
-                className="pl-10 bg-slate-700 border-slate-600 text-white focus:border-blue-500"
-                placeholder={`Min ${minBet}`}
-              />
-            </div>
+          <Label className="text-slate-200 mb-2 block font-medium">Bet Amount ({assetType})</Label>
+          <div className="relative">
+            <Input
+              type="number"
+              placeholder="0.00"
+              value={betAmount}
+              onChange={(e) => setBetAmount(e.target.value)}
+              min={minBet}
+              max={maxPayout}
+              className="bg-slate-700/50 border-slate-600 text-white pr-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
             <Button
-              variant="outline"
+              type="button"
+              variant="ghost"
               size="sm"
-              onClick={() => setBetAmount('100')}
-              className="text-slate-300 border-slate-600 hover:bg-slate-700"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-6 px-2 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+              onClick={() => setBetAmount((parseFloat(ethers.formatEther(balances[assetType]))).toString())}
             >
               Max
             </Button>
+          </div>
+          <div className="flex justify-between text-sm text-slate-300">
+            <span className="font-medium">Available: {formatTokenAmount(balances[assetType])}</span>
+            <span className="text-slate-500">Min: {minBet}</span>
           </div>
         </div>
 

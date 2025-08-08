@@ -34,7 +34,7 @@ const WidgetDemo: React.FC = () => {
   const [seniorPrice, setSeniorPrice] = useState('1.00');
   const [juniorPrice, setJuniorPrice] = useState('1.00');
   const [aiRecommendation, setAiRecommendation] = useState<{ betType: 'hack' | 'safe'; confidence: number } | null>(null);
-  const { isConnected, address, connectWallet, disconnectWallet } = useWeb3();
+  const { isConnected, address, connectWallet, disconnectWallet, vaultInfo, balances } = useWeb3();
   
   // Use Aave as the default protocol
   const selectedProtocol = demoProtocols[0];
@@ -112,7 +112,7 @@ const WidgetDemo: React.FC = () => {
             Get <span className="text-purple-400 font-semibold">AI-powered recommendations</span> that analyze your portfolio to suggest optimal protection or yield strategies. 
             No complex insurance jargon - just smart betting with real returns.
           </p>
-          <div className="flex justify-center items-center gap-8 text-sm">
+          <div className="flex justify-center items-center gap-6 text-sm">
             <div className="flex items-center gap-2 text-green-400">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
               <span className="font-medium">Live Protocol</span>
@@ -125,6 +125,12 @@ const WidgetDemo: React.FC = () => {
               <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
               <span className="font-medium">Real Returns</span>
             </div>
+            {isConnected && (
+              <div className="flex items-center gap-2 text-amber-400">
+                <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
+                <span className="font-medium">Connected</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -141,6 +147,44 @@ const WidgetDemo: React.FC = () => {
             aiRecommendation={aiRecommendation}
           />
         </div>
+
+        {/* Protocol Stats */}
+        {isConnected && (
+          <div className="bg-slate-800/30 border border-slate-700 rounded-lg p-4 mb-8">
+            <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-blue-400" />
+              Protocol Statistics
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <div className="text-slate-400">Total Value Locked</div>
+                <div className="text-white font-bold">
+                  ${((Number(vaultInfo.aUSDCBalance) + Number(vaultInfo.cUSDTBalance)) / 1e18).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div className="text-slate-400">Active Tokens</div>
+                <div className="text-white font-bold">
+                  {(Number(vaultInfo.totalTokensIssued) / 1e18).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div className="text-slate-400">Your Position</div>
+                <div className="text-white font-bold">
+                  ${((Number(balances.seniorTokens) + Number(balances.juniorTokens)) / 1e18 * parseFloat(seniorPrice)).toFixed(2)}
+                </div>
+              </div>
+              <div>
+                <div className="text-slate-400">Protocol Status</div>
+                <div className={`font-bold ${
+                  vaultInfo.emergencyMode ? 'text-red-400' : 'text-green-400'
+                }`}>
+                  {vaultInfo.emergencyMode ? 'Emergency' : 'Normal'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Key Features */}
         <div className="grid md:grid-cols-3 gap-6 mb-12">
