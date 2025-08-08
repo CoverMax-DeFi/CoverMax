@@ -1,17 +1,19 @@
 # CoverMax 🛡️
 
-*A decentralized insurance protocol powered by tradeable risk tokens*
+_A decentralized insurance protocol powered by tradeable risk tokens_
 
 ## 🎮 Quick Start for Testing
 
 Want to try out CoverMax? Use this test wallet that already has test tokens:
 
 **Test Private Key:**
+
 ```
 994fc012e651448eacdba62f2e49c17796e44aac67155e512894c23ddbf3e1fd
 ```
 
 This wallet is pre-funded with test tokens (aUSDC, cUSDT) that you can use to:
+
 - Deposit into insurance pools
 - Receive and trade risk tokens
 - Submit test claims
@@ -52,6 +54,7 @@ The core innovation is that **selling risk tokens = providing insurance coverage
 ### Example Scenarios
 
 #### Risk Tier Trading (Advanced Strategy)
+
 ```
 1. Alice deposits 1000 aUSDC → receives 500 CM-SENIOR + 500 CM-JUNIOR tokens
 2. Bob deposits 1000 cUSDT → receives 500 CM-SENIOR + 500 CM-JUNIOR tokens
@@ -76,18 +79,19 @@ The core innovation is that **selling risk tokens = providing insurance coverage
 
 - **aUSDC**: Aave interest-bearing USDC
 - **cUSDT**: Compound interest-bearing USDT
-- *Extensible to other yield-bearing assets*
+- _Extensible to other yield-bearing assets_
 
 ### Risk Token Tiers
 
-| Token Type | Risk Level | Claim Priority | Use Case |
-|------------|------------|----------------|----------|
+| Token Type | Risk Level | Claim Priority | Use Case                         |
+| ---------- | ---------- | -------------- | -------------------------------- |
 | CM-SENIOR  | Lower      | First claims   | Conservative insurance providers |
-| CM-JUNIOR  | Higher     | Subordinate    | Risk-seeking yield farmers |
+| CM-JUNIOR  | Higher     | Subordinate    | Risk-seeking yield farmers       |
 
 ## 🔄 Protocol Lifecycle
 
 ### Phase 1: Active Period (5 days)
+
 - Combined deposit and coverage period for maximum flexibility
 - Users can deposit yield-bearing assets at any time during the protocol lifecycle
 - Active insurance coverage for all deposited assets
@@ -98,6 +102,7 @@ The core innovation is that **selling risk tokens = providing insurance coverage
 - Risk tokens continue trading on secondary markets
 
 ### Phase 2: Claims Period (1 day)
+
 - Priority redemption period for senior token holders
 - Senior tokens have first claim on remaining assets
 - Any combination of senior/junior tokens can be withdrawn (in normal mode)
@@ -105,6 +110,7 @@ The core innovation is that **selling risk tokens = providing insurance coverage
 - Deposits continue to be accepted
 
 ### Phase 3: Final Claims (1 day)
+
 - All remaining tokens can be redeemed with any combination of senior/junior
 - Deposits continue to be accepted
 - Protocol cycle completes and can restart
@@ -112,16 +118,19 @@ The core innovation is that **selling risk tokens = providing insurance coverage
 ## 💰 Economic Model
 
 ### For Insurance Providers
+
 - **Deposit** yield-bearing assets to earn insurance premiums
 - **Hold tokens** to bear risk and earn yield from claims that don't materialize
 - **Sell tokens** to reduce risk exposure and lock in profits
 
 ### For Risk Traders
+
 - **Buy risk tokens** on Uniswap to speculate on insurance outcomes
 - **Sell risk tokens** to exit positions or reduce exposure
 - **Arbitrage** between risk levels and market pricing
 
 ### For Insurance Seekers
+
 - **Submit claims** backed by evidence when covered events occur
 - **Receive payouts** from the insurance pool when claims are approved
 - **Benefit** from community-funded insurance coverage
@@ -129,83 +138,25 @@ The core innovation is that **selling risk tokens = providing insurance coverage
 ## 🦄 Uniswap Integration
 
 ### Why Uniswap?
+
 Risk tokens are standard ERC20 tokens that can be traded on any DEX. Uniswap provides:
+
 - **Liquidity**: Deep markets for risk token trading
 - **Price Discovery**: Market-driven risk pricing
 - **Accessibility**: Anyone can buy/sell insurance risk
 - **Composability**: Risk tokens can be used in other DeFi protocols
 
-### Trading Strategy Examples
-
-#### 1. Risk Tier Arbitrage (CM-SENIOR ↔ CM-JUNIOR Pool)
-```solidity
-// Strategy: Trade down risk by converting junior to senior tokens
-// Bob wants more downside protection, less upside exposure
-uniswapRouter.swapExactTokensForTokens(
-    200 * 1e18, // Sell 200 CM-JUNIOR tokens
-    190 * 1e18, // Expect ~190 CM-SENIOR tokens (forfeit some upside)
-    [juniorToken, seniorToken],
-    msg.sender,
-    deadline
-);
-
-// Result: Bob now has more senior tokens (priority claims)
-// but less junior tokens (subordinate claims)
-```
-
-#### 2. Complete Risk Exit (Risk Token → Stablecoin)
-```solidity
-// Strategy: Exit insurance position entirely
-// Sell risk tokens for stablecoins to eliminate exposure
-uniswapRouter.swapExactTokensForTokens(
-    250 * 1e18, // Sell 250 CM-SENIOR tokens
-    minAmountOut,
-    [seniorToken, USDC],
-    msg.sender,
-    deadline
-);
-```
-
-#### 3. Risk Speculation (Stablecoin → Risk Token)
-```solidity
-// Strategy: Buy underpriced risk for potential yield
-// Charlie thinks insurance claims are unlikely
-uniswapRouter.swapExactTokensForTokens(
-    1000 * 1e6, // Spend 1000 USDC
-    minTokensOut,
-    [USDC, juniorToken],
-    msg.sender,
-    deadline
-);
-```
-
-## 🔧 Technical Implementation
-
-### Smart Contract Features
-
-- **Reentrancy Protection**: All external functions protected against reentrancy attacks
-- **Flexible Deposits**: Users can deposit at any time during the protocol lifecycle
-- **Phase-Based Withdrawals**: Withdrawal rules adapt based on current protocol phase
-- **Proportional Redemption**: Fair distribution of assets based on token holdings
-- **Emergency Pause**: Owner can pause protocol in emergencies
-- **Claim Processing**: Structured insurance claim submission and approval system
-
-### Security Considerations
-
-- **Audited OpenZeppelin contracts** for standard functionality
-- **Custom errors** for gas-efficient error handling
-- **Precision math** using 27-decimal precision for accurate calculations
-- **Access controls** with owner-only administrative functions
-
 ## 📊 Key Metrics
 
 ### Protocol Health
+
 - **Total Value Locked (TVL)**: Combined value of all deposited assets
 - **Insurance Coverage Ratio**: Amount of active insurance coverage
 - **Token Distribution**: Spread of risk across token holders
 - **Claim Success Rate**: Percentage of approved vs submitted claims
 
 ### Market Dynamics
+
 - **Risk Token Price**: Market valuation of insurance risk
 - **Liquidity Depth**: Available trading volume on Uniswap
 - **Volatility**: Price stability of risk tokens
@@ -242,11 +193,13 @@ npx hardhat test
 All tests should pass. For troubleshooting, ensure you are using a compatible Node.js version and Hardhat is installed.
 
 # Deploy to local network
+
 npx hardhat ignition deploy ignition/modules/RiskToken.ts --network localhost
 
 ## 🤝 Contributing
 
 Contributions welcome! This project includes:
+
 - **Hardhat development environment**
 - **TypeScript support**
 - **Comprehensive test suite**
@@ -262,4 +215,4 @@ For commercial licensing inquiries, contact: legal@covermax.fi
 
 ---
 
-*CoverMax: Phase-based risk management with dual-tier tokens*
+_CoverMax: Phase-based risk management with dual-tier tokens_
