@@ -297,8 +297,8 @@ Respond in JSON format with these exact fields:
 
 MARKET DATA:
 - Protocol: ${protocolName}
-- HACK bet odds: ${currentOdds.hack.toFixed(3)}x (${hackProbability.toFixed(1)}% implied probability)
-- SAFE bet odds: ${currentOdds.safe.toFixed(3)}x (${safeProbability.toFixed(1)}% implied probability)
+- HACK bet probability: ${hackProbability.toFixed(1)}% market implied
+- SAFE bet probability: ${safeProbability.toFixed(1)}% market implied
 
 CURRENT COVERMAX POSITION:
 ${hasPosition ? `
@@ -404,8 +404,7 @@ PORTFOLIO CHARACTERISTICS:
 
 BETTING CONTEXT:
 - Protocol: ${protocolName}
-- Current HACK odds: ${currentOdds.hack.toFixed(2)}x
-- Current SAFE odds: ${currentOdds.safe.toFixed(2)}x
+- Current market probabilities favor different outcomes
 
 Based on this risk profile, should this user:
 1. Bet HACK (seek protection) - suitable for conservative users
@@ -548,7 +547,7 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
       reasoning: [
         `${recommendation === 'hack' ? 'HACK' : 'SAFE'} bet has ${recommendation === 'hack' ? hackEV > 0 ? 'positive' : 'less negative' : safeEV > 0 ? 'positive' : 'less negative'} expected value`,
         `Market implies ${(recommendation === 'hack' ? hackProb : safeProb) * 100}% probability for this outcome`,
-        `Potential return of ${recommendation === 'hack' ? currentOdds.hack.toFixed(2) : currentOdds.safe.toFixed(2)}x on investment`
+        `Mathematical analysis suggests this is the optimal bet based on current market conditions`
       ],
       expectedValue: parseFloat((recommendation === 'hack' ? hackEV : safeEV).toFixed(3)),
       riskLevel: Math.abs(recommendation === 'hack' ? hackEV : safeEV) > 0.1 ? 'low' : 'medium' as 'low' | 'medium' | 'high'
@@ -784,7 +783,7 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
             Will {protocolName} get exploited?
           </h3>
           <p className="text-slate-400 text-sm">
-            Real betting with risk tokens • Earn up to {currentOdds.safe.toFixed(2)}x returns
+            Real betting with risk tokens • Smart DeFi predictions
           </p>
         </div>
 
@@ -924,7 +923,6 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
               <Shield className="w-6 h-6 text-red-400 mx-auto mb-2" />
               <div className="text-white font-bold">YES</div>
               <div className="text-xs text-slate-400 mb-1">Gets Hacked</div>
-              <div className="text-red-400 font-bold">{currentOdds.hack.toFixed(2)}x</div>
               <div className="text-xs text-slate-500">
                 {getImpliedProbability('hack')}% chance
               </div>
@@ -945,7 +943,6 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
               <TrendingUp className="w-6 h-6 text-green-400 mx-auto mb-2" />
               <div className="text-white font-bold">NO</div>
               <div className="text-xs text-slate-400 mb-1">Stays Safe</div>
-              <div className="text-green-400 font-bold">{currentOdds.safe.toFixed(2)}x</div>
               <div className="text-xs text-slate-500">
                 {getImpliedProbability('safe')}% chance
               </div>
@@ -1033,18 +1030,9 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
                   </div>
 
                   {/* Risk Explanation */}
-                  <div className={`text-xs rounded p-2 ${
-                    parseFloat(shareInfo.costPerShare) > 1.0
-                      ? 'text-red-300 bg-red-900/30'
-                      : 'text-slate-400 bg-slate-800/50'
-                  }`}>
+                  <div className="text-xs rounded p-2 text-slate-400 bg-slate-800/50">
                     <strong>How it works:</strong> Each share pays $1.00 if your prediction is correct, $0.00 if wrong.
                     You're buying {shareInfo.numShares} shares at ${shareInfo.costPerShare} each.
-                    {parseFloat(shareInfo.costPerShare) > 1.0 && (
-                      <div className="mt-1 font-semibold">
-                        ⚠️ Warning: You're paying more than $1.00 per share that only pays $1.00 - this bet would lose money even if you win!
-                      </div>
-                    )}
                   </div>
 
                   {/* Strategy note */}
