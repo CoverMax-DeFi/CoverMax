@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,7 @@ import Logo from '@/assets/images/CoverMax.svg';
 import { Link } from 'react-router-dom';
 import { useWeb3 } from '@/context/PrivyWeb3Context';
 import NetworkSelector from '@/components/NetworkSelector';
-import { Code, Zap, TrendingUp, Users, DollarSign, Target } from 'lucide-react';
+import { Zap, TrendingUp, DollarSign, Target, Brain } from 'lucide-react';
 
 interface ProtocolDemo {
   name: string;
@@ -30,25 +30,26 @@ const demoProtocols: ProtocolDemo[] = [
 ];
 
 const WidgetDemo: React.FC = () => {
-  const [selectedProtocol, setSelectedProtocol] = useState<ProtocolDemo>(demoProtocols[0]);
-  const [showCode, setShowCode] = useState(false);
+  const [currentOdds, setCurrentOdds] = useState({ hack: 1.02, safe: 1.25 });
+  const [seniorPrice, setSeniorPrice] = useState('1.00');
+  const [juniorPrice, setJuniorPrice] = useState('1.00');
+  const [aiRecommendation, setAiRecommendation] = useState<{ betType: 'hack' | 'safe'; confidence: number } | null>(null);
   const { isConnected, address, connectWallet, disconnectWallet } = useWeb3();
+  
+  // Use Aave as the default protocol
+  const selectedProtocol = demoProtocols[0];
 
   // Format address for display
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
-
-  const codeExample = `import PredictionMarketWidget from '@/components/PredictionMarketWidget';
-
-// Embed in your protocol page
-<PredictionMarketWidget
-  protocolName="${selectedProtocol.name}"
-  protocolLogo="${selectedProtocol.logo}"
-  timeframe="7 days"
-  minBet={10}
-  maxPayout={1000}
-/>`;
+  
+  // Memoize the callback to prevent infinite re-renders
+  const handleOddsUpdate = useCallback((odds: { hack: number; safe: number }, senior: string, junior: string) => {
+    setCurrentOdds(odds);
+    setSeniorPrice(senior);
+    setJuniorPrice(junior);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -104,178 +105,83 @@ const WidgetDemo: React.FC = () => {
       <div className="relative z-10 container mx-auto px-6 py-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            CoverMax Prediction Market Widget
+          <h1 className="text-4xl font-bold text-white mb-4">
+            Smart DeFi Insurance Made Simple
           </h1>
-          <p className="text-slate-300 max-w-3xl mx-auto">
-            A standalone component that turns protocol security into a <span className="font-semibold text-purple-400">profitable prediction game</span>.
-            No insurance jargon, just pure speculation on DeFi protocol outcomes.
+          <p className="text-slate-300 text-xl max-w-3xl mx-auto mb-6 leading-relaxed">
+            Get <span className="text-purple-400 font-semibold">AI-powered recommendations</span> that analyze your portfolio to suggest optimal protection or yield strategies. 
+            No complex insurance jargon - just smart betting with real returns.
           </p>
-        </div>
-
-        {/* Live Demo */}
-        <div className="grid lg:grid-cols-2 gap-8 mb-8">
-          {/* Widget Demo */}
-          <div>
-            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-              <Zap className="h-5 w-5 text-purple-400" />
-              Live Demo Widget
-            </h2>
-            <PredictionMarketWidget
-              protocolName={selectedProtocol.name}
-              protocolLogo={selectedProtocol.logo}
-              timeframe="7 days"
-              minBet="10"
-              maxPayout="1000"
-              supportedAssets={selectedProtocol.supportedAssets}
-            />
-          </div>
-
-          {/* Protocol Selector */}
-          <div>
-            <h2 className="text-xl font-semibold text-white mb-4">Choose Protocol to Demo</h2>
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              {demoProtocols.map((protocol) => (
-                <button
-                  key={protocol.name}
-                  onClick={() => setSelectedProtocol(protocol)}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
-                    selectedProtocol.name === protocol.name
-                      ? 'border-purple-500 bg-purple-500/20 text-white'
-                      : 'border-slate-600 bg-slate-700/50 hover:border-purple-400 hover:bg-slate-600/50 text-slate-200'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{protocol.logo}</span>
-                    <div>
-                      <div className="text-white font-medium">{protocol.name}</div>
-                      <div className="text-xs text-slate-400">
-                        Live odds from Uniswap pools
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              ))}
+          <div className="flex justify-center items-center gap-8 text-sm">
+            <div className="flex items-center gap-2 text-green-400">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="font-medium">Live Protocol</span>
             </div>
-
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-white text-lg">Why This Works</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-slate-300">
-                <div className="flex items-start gap-3">
-                  <Target className="h-5 w-5 text-green-400 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-white">Feels Like Speculation</h4>
-                    <p className="text-sm">Users love betting on outcomes - no complex insurance terminology</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <DollarSign className="h-5 w-5 text-blue-400 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-white">Clear Profit Motive</h4>
-                    <p className="text-sm">Show exact payouts and odds to drive engagement</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Zap className="h-5 w-5 text-purple-400 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-white">Embeddable Anywhere</h4>
-                    <p className="text-sm">Drop into any protocol page, forum, or dApp</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex items-center gap-2 text-purple-400">
+              <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+              <span className="font-medium">AI-Powered</span>
+            </div>
+            <div className="flex items-center gap-2 text-blue-400">
+              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+              <span className="font-medium">Real Returns</span>
+            </div>
           </div>
         </div>
 
-        {/* Implementation Code */}
-        <Card className="mb-8 bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Code className="h-5 w-5 text-green-400" />
-              Easy Integration
-            </CardTitle>
-            <CardDescription className="text-slate-300">
-              Copy and paste this component anywhere. Perfect for embedding on Aave, Compound, or any DeFi protocol page.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-sm text-slate-400">React Component</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCode(!showCode)}
-                className="text-white bg-slate-600 border-slate-500 hover:bg-slate-500 hover:text-white font-medium"
-              >
-                {showCode ? 'Hide Code' : 'Show Code'}
-              </Button>
-            </div>
+        {/* Main Widget Demo */}
+        <div className="max-w-md mx-auto mb-12">
+          <PredictionMarketWidget
+            protocolName={selectedProtocol.name}
+            protocolLogo={selectedProtocol.logo}
+            timeframe="7 days"
+            minBet="10"
+            maxPayout="1000"
+            supportedAssets={selectedProtocol.supportedAssets}
+            onOddsUpdate={handleOddsUpdate}
+            aiRecommendation={aiRecommendation}
+          />
+        </div>
 
-            {showCode && (
-              <div className="bg-slate-900/50 rounded-lg p-4 overflow-x-auto">
-                <pre className="text-sm text-green-400">
-                  <code>{codeExample}</code>
-                </pre>
-              </div>
-            )}
-
-            <div className="grid md:grid-cols-3 gap-4 mt-4 text-sm">
-              <div className="text-center p-3 bg-slate-700/30 rounded-lg">
-                <div className="text-white font-medium">Single Component</div>
-                <div className="text-slate-400">No dependencies</div>
-              </div>
-              <div className="text-center p-3 bg-slate-700/30 rounded-lg">
-                <div className="text-white font-medium">Customizable</div>
-                <div className="text-slate-400">Odds, logos, timeframes</div>
-              </div>
-              <div className="text-center p-3 bg-slate-700/30 rounded-lg">
-                <div className="text-white font-medium">Mobile Ready</div>
-                <div className="text-slate-400">Responsive design</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Business Value */}
-        <div className="grid md:grid-cols-3 gap-6">
+        {/* Key Features */}
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
           <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Target className="h-5 w-5 text-purple-400" />
-                Mass Market Appeal
+              <CardTitle className="text-white text-lg flex items-center gap-2">
+                <Brain className="h-5 w-5 text-purple-400" />
+                AI Analysis
               </CardTitle>
             </CardHeader>
             <CardContent className="text-slate-300">
-              <p>Transforms complex insurance into simple betting. Crypto users love speculation and profit opportunities.</p>
+              <p className="text-sm">AI analyzes your wallet composition and market conditions to recommend optimal betting strategies.</p>
             </CardContent>
           </Card>
-
+          
           <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Zap className="h-5 w-5 text-blue-400" />
-                Viral Distribution
+              <CardTitle className="text-white text-lg flex items-center gap-2">
+                <Target className="h-5 w-5 text-green-400" />
+                Smart Positioning
               </CardTitle>
             </CardHeader>
             <CardContent className="text-slate-300">
-              <p>Embeddable widgets spread organically. Each protocol becomes a distribution channel for CoverMax.</p>
+              <p className="text-sm">Recommendations consider your existing positions to avoid over-concentration and optimize returns.</p>
             </CardContent>
           </Card>
-
+          
           <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-green-400" />
-                Hidden Insurance
+              <CardTitle className="text-white text-lg flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-blue-400" />
+                Expected Value
               </CardTitle>
             </CardHeader>
             <CardContent className="text-slate-300">
-              <p>Users get insurance coverage without realizing it. Behind the scenes, CoverMax handles all the complexity.</p>
+              <p className="text-sm">Real-time calculations show mathematical edge and profit potential for each betting opportunity.</p>
             </CardContent>
           </Card>
         </div>
+
+
       </div>
     </div>
   );
