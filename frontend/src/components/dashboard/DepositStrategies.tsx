@@ -20,6 +20,8 @@ interface DepositStrategiesProps {
   formatNumber: (num: number, decimals?: number) => string;
   isExecuting: boolean;
   onExecuteStrategy: (strategy: 'safety' | 'upside' | 'balanced', amount: string, asset: 'aUSDC' | 'cUSDT') => void;
+  seniorPrice?: string;
+  juniorPrice?: string;
 }
 
 const DepositStrategies: React.FC<DepositStrategiesProps> = ({
@@ -28,6 +30,8 @@ const DepositStrategies: React.FC<DepositStrategiesProps> = ({
   formatNumber,
   isExecuting,
   onExecuteStrategy,
+  seniorPrice = '1.00',
+  juniorPrice = '1.00',
 }) => {
   const [activeStrategy, setActiveStrategy] = useState<'safety' | 'upside' | 'balanced'>('balanced');
   const [amount, setAmount] = useState('');
@@ -179,13 +183,13 @@ const DepositStrategies: React.FC<DepositStrategiesProps> = ({
                 <div className="font-semibold text-white">Strategy Preview:</div>
                 <div className="text-sm space-y-1 text-slate-200">
                   {activeStrategy === 'safety' && (
-                    <div>Depositing ${amount} will get you ~${amount} in Senior tokens (priority claims)</div>
+                    <div>Depositing ${amount} will get you ~{formatNumber(parseFloat(amount) / parseFloat(seniorPrice))} Senior tokens (priority claims)</div>
                   )}
                   {activeStrategy === 'balanced' && (
-                    <div>Depositing ${amount} will get you ~${formatNumber(parseFloat(amount) / 2)} Senior + ~${formatNumber(parseFloat(amount) / 2)} Junior tokens</div>
+                    <div>Depositing ${amount} will get you ~{formatNumber((parseFloat(amount) / 2) / parseFloat(seniorPrice))} Senior + ~{formatNumber((parseFloat(amount) / 2) / parseFloat(juniorPrice))} Junior tokens</div>
                   )}
                   {activeStrategy === 'upside' && (
-                    <div>Depositing ${amount} will get you ~${amount} in Junior tokens (higher upside potential)</div>
+                    <div>Depositing ${amount} will get you ~{formatNumber(parseFloat(amount) / parseFloat(juniorPrice))} Junior tokens (higher upside potential)</div>
                   )}
                 </div>
               </div>
