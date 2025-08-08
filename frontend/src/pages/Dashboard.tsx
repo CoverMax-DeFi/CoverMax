@@ -339,6 +339,8 @@ const Dashboard = () => {
               formatNumber={formatNumber}
               isExecuting={isExecuting}
               onExecuteStrategy={executeStrategy}
+              seniorPrice={seniorPrice}
+              juniorPrice={juniorPrice}
             />
           </TabsContent>
 
