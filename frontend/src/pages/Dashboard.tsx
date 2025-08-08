@@ -12,7 +12,7 @@ import {
   Clock,
   RefreshCw,
 } from 'lucide-react';
-import { Phase } from '@/config/contracts';
+import { Phase, getPhaseNameFromBigInt } from '@/config/contracts';
 import StatCard from '@/components/StatCard';
 
 // Import custom hooks
@@ -155,7 +155,7 @@ const Dashboard = () => {
   };
 
   // Withdrawal handler
-  const handleWithdraw = async (amount: string) => {
+  const handleWithdraw = async (asset: 'aUSDC' | 'cUSDT', amount: string) => {
     if (!amount || parseFloat(amount) <= 0) return;
 
     setIsWithdrawing(true);
@@ -298,7 +298,7 @@ const Dashboard = () => {
 
           <StatCard
             title="Protocol Phase"
-            value={vaultInfo.currentPhase !== undefined ? Phase[vaultInfo.currentPhase] : 'Loading...'}
+            value={getPhaseNameFromBigInt(vaultInfo.currentPhase)}
             description={`TVL: $${formatNumber(protocolTVL, 0)}`}
             icon={<Clock className="w-8 h-8 text-purple-400" />}
             className="text-white"

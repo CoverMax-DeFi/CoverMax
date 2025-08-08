@@ -23,7 +23,7 @@ import {
   Eye
 } from 'lucide-react';
 import { useWeb3 } from '@/context/PrivyWeb3Context';
-import { Phase, ContractName, getContractAddress } from '@/config/contracts';
+import { Phase, ContractName, getContractAddress, getPhaseNameFromBigInt } from '@/config/contracts';
 import { ethers } from 'ethers';
 
 interface PredictionMarketWidgetProps {
@@ -759,7 +759,7 @@ Provide specific reasoning based on their wallet composition and risk tolerance.
               Protocol Active - Live Betting Available
             </span>
             <span className="text-slate-400 text-xs ml-auto">
-              Phase: {vaultInfo.currentPhase !== undefined ? Phase[vaultInfo.currentPhase] : 'Loading...'}
+              Phase: {getPhaseNameFromBigInt(vaultInfo.currentPhase)}
             </span>
           </div>
         </div>

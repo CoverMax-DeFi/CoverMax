@@ -263,10 +263,12 @@ const PositionManagement: React.FC<PositionManagementProps> = ({
           <Alert className="bg-yellow-900/30 border-yellow-500">
             <AlertCircle className="h-4 w-4 text-yellow-400" />
             <AlertDescription className="text-yellow-200">
-              {vaultInfo.currentPhase === 0 && 'Withdrawals require equal amounts of SENIOR and JUNIOR tokens.'}
-              {vaultInfo.currentPhase === 1 && 'Any combination of SENIOR and JUNIOR tokens can be withdrawn.'}
-              {vaultInfo.currentPhase === 2 && 'All token holders can withdraw remaining funds with any token combination.'}
+              {vaultInfo.currentPhase === 0n && 'Active Period: Withdrawals require equal amounts of Senior and Junior tokens.'}
+              {vaultInfo.currentPhase === 1n && 'Claims Period: Any combination of Senior and Junior tokens can be withdrawn.'}
+              {vaultInfo.currentPhase === 2n && 'Final Claims Period: All token holders can withdraw remaining funds with any token combination.'}
               {vaultInfo.currentPhase === undefined && 'Loading withdrawal rules...'}
+              {(vaultInfo.currentPhase !== 0n && vaultInfo.currentPhase !== 1n && vaultInfo.currentPhase !== 2n && vaultInfo.currentPhase !== undefined) && 
+                `Phase ${vaultInfo.currentPhase?.toString()}: Any combination of tokens can be withdrawn.`}
             </AlertDescription>
           </Alert>
         </CardContent>

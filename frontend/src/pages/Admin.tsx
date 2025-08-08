@@ -143,20 +143,16 @@ const Admin = () => {
               <div className="p-4 bg-slate-700/50 rounded-lg backdrop-blur-sm">
                 <p className="text-sm text-slate-400 mb-2">Phase Progression:</p>
                 <div className="flex items-center space-x-2 text-sm">
-                  <span className={vaultInfo.currentPhase === Phase.DEPOSIT ? 'font-bold text-white' : 'text-slate-300'}>
-                    Deposit (2d)
+                  <span className={Number(vaultInfo.currentPhase) === Phase.ACTIVE ? 'font-bold text-white' : 'text-slate-300'}>
+                    Active Period (5d)
                   </span>
                   <span className="text-slate-400">→</span>
-                  <span className={vaultInfo.currentPhase === Phase.COVERAGE ? 'font-bold text-white' : 'text-slate-300'}>
-                    Coverage (3d)
+                  <span className={Number(vaultInfo.currentPhase) === Phase.CLAIMS ? 'font-bold text-white' : 'text-slate-300'}>
+                    Claims Period (1d)
                   </span>
                   <span className="text-slate-400">→</span>
-                  <span className={vaultInfo.currentPhase === Phase.CLAIMS ? 'font-bold text-white' : 'text-slate-300'}>
-                    Claims (1d)
-                  </span>
-                  <span className="text-slate-400">→</span>
-                  <span className={vaultInfo.currentPhase === Phase.FINAL_CLAIMS ? 'font-bold text-white' : 'text-slate-300'}>
-                    Final Claims (1d)
+                  <span className={Number(vaultInfo.currentPhase) === Phase.FINAL_CLAIMS ? 'font-bold text-white' : 'text-slate-300'}>
+                    Final Claims Period (1d)
                   </span>
                 </div>
               </div>
@@ -180,7 +176,7 @@ const Admin = () => {
                   Force Phase Transition (Immediate)
                 </Button>
 
-                {vaultInfo.currentPhase === Phase.FINAL_CLAIMS && (
+                {Number(vaultInfo.currentPhase) === Phase.FINAL_CLAIMS && (
                   <Button
                     onClick={startNewCycle}
                     variant="default"
@@ -192,7 +188,7 @@ const Admin = () => {
                 )}
               </div>
 
-              {vaultInfo.currentPhase !== Phase.FINAL_CLAIMS && (
+              {Number(vaultInfo.currentPhase) !== Phase.FINAL_CLAIMS && (
                 <Alert className="bg-slate-700/50 border-slate-600 text-slate-300">
                   <AlertDescription>
                     New cycles can only be started from the Final Claims phase

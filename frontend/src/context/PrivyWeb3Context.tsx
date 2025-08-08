@@ -38,7 +38,7 @@ interface VaultInfo {
   cUSDTBalance: bigint;
   totalTokensIssued: bigint;
   emergencyMode: boolean;
-  currentPhase: Phase;
+  currentPhase: bigint;
   phaseStartTime: bigint;
   cycleStartTime: bigint;
   timeRemaining: bigint;
@@ -198,7 +198,7 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
     cUSDTBalance: 0n,
     totalTokensIssued: 0n,
     emergencyMode: false,
-    currentPhase: Phase.ACTIVE,
+    currentPhase: 0n,
     phaseStartTime: 0n,
     cycleStartTime: 0n,
     timeRemaining: 0n,
@@ -225,7 +225,7 @@ const InnerWeb3Provider: React.FC<{ children: ReactNode }> = ({ children }) => {
     cUSDTBalance: 0n,
     totalTokensIssued: 0n,
     emergencyMode: false,
-    currentPhase: Phase.ACTIVE,
+    currentPhase: 0n,
     phaseStartTime: 0n,
     cycleStartTime: 0n,
     timeRemaining: 0n,

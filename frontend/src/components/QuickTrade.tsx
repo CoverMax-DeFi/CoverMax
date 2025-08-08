@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useWeb3 } from '@/context/PrivyWeb3Context';
 import { Shield, TrendingUp, Scale, Zap, DollarSign, AlertCircle } from 'lucide-react';
-import { Phase, ContractName, getContractAddress, SupportedChainId } from '@/config/contracts';
+import { Phase, ContractName, getContractAddress, SupportedChainId, getPhaseNameFromBigInt } from '@/config/contracts';
 import SmartLiquiditySuggestion from './SmartLiquiditySuggestion';
 import { ethers } from 'ethers';
 
@@ -298,7 +298,7 @@ const QuickTrade: React.FC = () => {
           <Alert className="bg-slate-700/50 border-slate-600 text-slate-300">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Current phase: {vaultInfo.currentPhase !== undefined ? Phase[vaultInfo.currentPhase] : 'Loading...'}. Deposits and withdrawals allowed at any time.
+              Current phase: {getPhaseNameFromBigInt(vaultInfo.currentPhase)}. Deposits and withdrawals allowed at any time.
             </AlertDescription>
           </Alert>
 

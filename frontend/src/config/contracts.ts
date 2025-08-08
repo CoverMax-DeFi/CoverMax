@@ -245,9 +245,15 @@ export enum Phase {
 
 export const PHASE_NAMES = {
   [Phase.ACTIVE]: "Active Period",
-  [Phase.CLAIMS]: "Claims Period",
+  [Phase.CLAIMS]: "Claims Period", 
   [Phase.FINAL_CLAIMS]: "Final Claims Period",
 } as const;
+
+// Utility function to get phase name from BigInt
+export function getPhaseNameFromBigInt(phase: bigint | undefined): string {
+  if (phase === undefined) return 'Loading...';
+  return PHASE_NAMES[Number(phase) as Phase] || `Unknown Phase (${phase.toString()})`;
+}
 
 // Phase durations in seconds (matching smart contract)
 export const PHASE_DURATIONS = {
