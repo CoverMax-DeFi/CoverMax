@@ -155,12 +155,12 @@ const Dashboard = () => {
   };
 
   // Withdrawal handler
-  const handleWithdraw = async (asset: 'aUSDC' | 'cUSDT', amount: string) => {
+  const handleWithdraw = async (amount: string) => {
     if (!amount || parseFloat(amount) <= 0) return;
 
     setIsWithdrawing(true);
     try {
-      // Simplified withdrawal logic - could be enhanced with optimal token calculation
+      // Simplified withdrawal logic - withdraws proportionally to both aUSDC and cUSDT
       const halfAmount = (parseFloat(amount) / 2).toFixed(6);
       await withdraw(halfAmount, halfAmount);
       await refreshData();
